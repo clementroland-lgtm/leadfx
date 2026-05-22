@@ -434,7 +434,18 @@ var FX={
 };
 
 function getFX(naf){return FX[naf]||{e:'Forte',p:'EUR/USD',c:'DAF',f6:'Flux en devises sur activité internationale — pertes de change compte 666',f7:'Gains de change lors positions favorables — produits financiers 766'};}
-function score(ca,expo){var s=35;if(ca>=80)s+=18;else if(ca>=40)s+=14;else if(ca>=20)s+=10;else if(ca>=5)s+=6;if(expo==='Forte')s+=25;else if(expo==='Moyenne')s+=12;return Math.min(99,Math.max(30,s));}
+function score(ca,expo){
+  var s=41;
+  // CA inconnu dans SIREN = neutre (on ne pénalise pas l'absence de données)
+  if(ca===0)s+=12;
+  else if(ca>=80)s+=18;
+  else if(ca>=40)s+=14;
+  else if(ca>=20)s+=10;
+  else if(ca>=5)s+=6;
+  else s+=2;
+  if(expo==='Forte')s+=25;else if(expo==='Moyenne')s+=12;
+  return Math.min(99,Math.max(30,s));
+}
 function mkLinks(nom){var e=encodeURIComponent(nom);return{pappers:'https://www.pappers.fr/recherche?q='+e,annuaire:'https://annuaire-entreprises.data.gouv.fr/rechercher?terme='+e,societe:'https://www.societe.com/cgi-bin/search?champs='+e};}
 
 // ── SECTEURS LIVE ────────────────────────────────────
@@ -637,7 +648,7 @@ function doSearch(){
 }
 
 // ── LIVE SCRAPING ILLIMITÉ ────────────────────────────
-function runLive(){
+function runLive(isRefresh){
   if(running)return;
   var sel=document.querySelectorAll('.sec-card.on');
   if(!sel.length){alert('Sélectionne au moins un secteur !');return;}
@@ -647,7 +658,8 @@ function runLive(){
   var nb=parseInt(document.getElementById('l-nb').value,10)||100;
   var expo=document.getElementById('l-expo').value;
 
-  running=true;liveAll=[];shown=[];if(pageOffset===0)seenSirens={};
+  if(!isRefresh){pageOffset=0;seenSirens={};}
+  running=true;liveAll=[];shown=[];
   document.getElementById('live-btn').disabled=true;
   document.getElementById('prog').classList.add('on');
   document.getElementById('plog').innerHTML='';
@@ -735,8 +747,8 @@ function runRefresh(){
   if(running){alert('Scraping en cours, patiente…');return;}
   var sel=document.querySelectorAll('.sec-card.on');
   if(!sel.length){alert('Sélectionne au moins un secteur !');return;}
-  pageOffset+=3; // Décale les pages pour obtenir de nouveaux résultats
-  runLive();
+  pageOffset+=3;
+  runLive(true);
 }
 
 function buildLead(e,sec){
@@ -802,7 +814,9 @@ function renderTable(){
     return true;
   });
   if(!disp.length){
-    wrap.innerHTML='<div class="empty"><div class="empty-ico">◈</div><div class="empty-t">'+(curTab==='local'?'Tape un mot-clé ci-dessus':'Lance le scraping — sélectionne des secteurs')+'</div><div class="empty-s">international · textile · eau · Afrique · pharma · aéro · Maroc</div></div>';
+    var msg = curTab==='local' ? 'Tape un mot-clé ci-dessus' : (shown.length>0 ? 'Aucun lead avec score FX > 75 — clique ↻ Actualiser pour charger de nouveaux résultats' : 'Lance le scraping — sélectionne des secteurs');
+    var sub = curTab==='local' ? 'international · textile · eau · Afrique · pharma · aéro · Maroc' : (shown.length>0 ? 'Le filtre score > 75 est actif — les entreprises peu exposées au change sont exclues' : 'international · textile · eau · Afrique · pharma · aéro · Maroc');
+    wrap.innerHTML='<div class="empty"><div class="empty-ico">◈</div><div class="empty-t">'+msg+'</div><div class="empty-s">'+sub+'</div></div>';
     return;
   }
   wrap.innerHTML='<div class="tw"><table><thead><tr><th>#</th><th>Société</th><th>Activité NAF</th><th>Ville</th><th>CA (5–125 M€)</th><th>Paires FX</th><th>Flux 666 — pertes</th><th>Flux 766 — gains</th><th>Exposition</th><th>Score</th><th>SIREN</th><th>Msg</th></tr></thead><tbody id="tbody"></tbody></table></div>';
