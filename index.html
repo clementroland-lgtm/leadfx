@@ -169,7 +169,7 @@ footer{text-align:center;padding:28px 0 12px;border-top:1px solid var(--b1);marg
 <div class="nav">
   <div class="logo">
     <span><b>Lead</b>FX Pro</span>
-    <span class="badge">CA 5–105 M€ · SIREN Luhn · 666/766</span>
+    <span class="badge">CA 5–125 M€ · SIREN Luhn · 666/766</span>
   </div>
   <div class="nav-r">
     <div class="ns"><div class="ns-n" style="color:var(--g)" id="nv-t">0</div><div class="ns-l">Leads</div></div>
@@ -220,7 +220,7 @@ footer{text-align:center;padding:28px 0 12px;border-top:1px solid var(--b1);marg
 <div class="live-card" id="live-card">
   <div class="live-title">🔵 Scraping Live — API SIREN Officielle Illimitée</div>
   <div class="live-note" id="live-note">
-    ✓ Appel direct à recherche-entreprises.api.gouv.fr · Zéro limite · CA 5–105 M€ filtré · SIREN validé Luhn<br>
+    ✓ Appel direct à recherche-entreprises.api.gouv.fr · Zéro limite · CA 5–125 M€ filtré · SIREN validé Luhn<br>
     Sélectionne les secteurs et clique Lancer — pagination automatique infinie
   </div>
   <div class="sec-grid" id="sec-grid"></div>
@@ -258,8 +258,9 @@ footer{text-align:center;padding:28px 0 12px;border-top:1px solid var(--b1);marg
         <option value="toutes">Toutes</option>
       </select>
     </div>
-    <div style="display:flex;align-items:flex-end">
-      <button class="live-btn" id="live-btn" onclick="runLive()">🔵 Lancer le scraping</button>
+    <div style="display:flex;align-items:flex-end;gap:8px">
+      <button class="live-btn" id="live-btn" onclick="runLive()" style="flex:2">🔵 Lancer</button>
+      <button class="live-btn" id="refresh-btn" onclick="runRefresh()" style="flex:1;background:var(--g);color:#07080d" title="Charge de nouveaux leads différents">↻ Actualiser</button>
     </div>
   </div>
 </div>
@@ -329,7 +330,7 @@ footer{text-align:center;padding:28px 0 12px;border-top:1px solid var(--b1);marg
   <button class="load-btn" id="load-btn" onclick="loadMore()">⬇ Charger 100 résultats supplémentaires</button>
 </div>
 
-<footer>LEADFX PRO · API SIREN OFFICIELLE GOUVERNEMENT FRANÇAIS · CA 5–105 M€ · SIREN LUHN · COMPTES 666/766 · ILLIMITÉ</footer>
+<footer>LEADFX PRO · API SIREN OFFICIELLE GOUVERNEMENT FRANÇAIS · CA 5–125 M€ · SIREN LUHN · COMPTES 666/766 · ILLIMITÉ</footer>
 </div>
 
 <div class="ov" id="ov" onclick="if(event.target===this)this.classList.remove('on')">
@@ -356,7 +357,7 @@ footer{text-align:center;padding:28px 0 12px;border-top:1px solid var(--b1);marg
 <script>
 'use strict';
 
-var CA_MIN=5, CA_MAX=105;
+var CA_MIN=5, CA_MAX=125;
 var API='https://recherche-entreprises.api.gouv.fr/search';
 
 // ── Luhn SIREN ──────────────────────────────────────
@@ -611,7 +612,7 @@ var DB=RAW.map(function(r,i){
 });
 
 // ── STATE ─────────────────────────────────────────────
-var curTab='local',shown=[],liveAll=[],curFlt='all',refStr='',msgCount=0,curLead=null,curMsgTab='email',running=false;
+var curTab='local',shown=[],liveAll=[],curFlt='all',refStr='',msgCount=0,curLead=null,curMsgTab='email',running=false,pageOffset=0,seenSirens={};
 
 function switchTab(t){
   curTab=t;
@@ -646,7 +647,7 @@ function runLive(){
   var nb=parseInt(document.getElementById('l-nb').value,10)||100;
   var expo=document.getElementById('l-expo').value;
 
-  running=true;liveAll=[];shown=[];
+  running=true;liveAll=[];shown=[];if(pageOffset===0)seenSirens={};
   document.getElementById('live-btn').disabled=true;
   document.getElementById('prog').classList.add('on');
   document.getElementById('plog').innerHTML='';
@@ -657,7 +658,7 @@ function runLive(){
   var tasks=[];
   sectors.forEach(function(sec){
     sec.kws.forEach(function(kw){
-      tasks.push({sec:sec,kw:kw,page:1});
+      tasks.push({sec:sec,kw:kw,page:1+pageOffset});
     });
   });
 
@@ -705,17 +706,22 @@ function runLive(){
     var seen={};
     liveAll=liveAll.filter(function(c){
       var k=c.siren||c.nom;
-      if(seen[k])return false;seen[k]=true;return true;
+      if(seen[k]||seenSirens[k])return false;
+      seen[k]=true;return true;
     });
+    // Mémoriser les leads déjà vus pour Actualiser
+    liveAll.forEach(function(c){seenSirens[c.siren||c.nom]=true;});
     if(expo!=='toutes'){
       var al=expo.split(',');
       var f2=liveAll.filter(function(c){return al.indexOf(c.expo)!==-1;});
       if(f2.length)liveAll=f2;
     }
     liveAll.sort(function(a,b){return b.score-a.score;});
+    // Filtre score FX > 75
+    liveAll=liveAll.filter(function(c){return c.score>75;});
     shown=liveAll.slice(0,nb);
     setP(100);
-    log('✓ '+shown.length+' leads qualifiés · CA 5–105 M€ · '+liveAll.length+' au total disponibles','ok');
+    log('✓ '+shown.length+' leads qualifiés · CA 5–125 M€ · '+liveAll.length+' au total disponibles','ok');
     if(liveAll.length>nb)document.getElementById('load-btn').classList.add('on');
     running=false;
     document.getElementById('live-btn').disabled=false;
@@ -723,6 +729,14 @@ function runLive(){
   }
 
   next();
+}
+
+function runRefresh(){
+  if(running){alert('Scraping en cours, patiente…');return;}
+  var sel=document.querySelectorAll('.sec-card.on');
+  if(!sel.length){alert('Sélectionne au moins un secteur !');return;}
+  pageOffset+=3; // Décale les pages pour obtenir de nouveaux résultats
+  runLive();
 }
 
 function buildLead(e,sec){
@@ -781,6 +795,7 @@ function renderTable(){
   var wrap=document.getElementById('tw');
   var fPair=document.getElementById('f-pair').value;
   var disp=shown.filter(function(c){
+    if(c.score<=75)return false;
     if(curFlt!=='all'&&c.expo!==curFlt)return false;
     if(fPair&&(c.pairs||[]).indexOf(fPair)===-1)return false;
     if(refStr){var h=c.nom.toLowerCase()+' '+(c.ville||'').toLowerCase();if(h.indexOf(refStr)===-1)return false;}
@@ -790,7 +805,7 @@ function renderTable(){
     wrap.innerHTML='<div class="empty"><div class="empty-ico">◈</div><div class="empty-t">'+(curTab==='local'?'Tape un mot-clé ci-dessus':'Lance le scraping — sélectionne des secteurs')+'</div><div class="empty-s">international · textile · eau · Afrique · pharma · aéro · Maroc</div></div>';
     return;
   }
-  wrap.innerHTML='<div class="tw"><table><thead><tr><th>#</th><th>Société</th><th>Activité NAF</th><th>Ville</th><th>CA (5–105 M€)</th><th>Paires FX</th><th>Flux 666 — pertes</th><th>Flux 766 — gains</th><th>Exposition</th><th>Score</th><th>SIREN</th><th>Msg</th></tr></thead><tbody id="tbody"></tbody></table></div>';
+  wrap.innerHTML='<div class="tw"><table><thead><tr><th>#</th><th>Société</th><th>Activité NAF</th><th>Ville</th><th>CA (5–125 M€)</th><th>Paires FX</th><th>Flux 666 — pertes</th><th>Flux 766 — gains</th><th>Exposition</th><th>Score</th><th>SIREN</th><th>Msg</th></tr></thead><tbody id="tbody"></tbody></table></div>';
   var tbody=document.getElementById('tbody');
   disp.forEach(function(c,i){
     var ec=c.expo==='Forte'?'ef':c.expo==='Moyenne'?'em':'el';
@@ -865,7 +880,7 @@ function xExcel(){
   var ws=XLSX.utils.aoa_to_sheet(data);
   ws['!cols']=[{wch:4},{wch:12},{wch:30},{wch:12},{wch:14},{wch:8},{wch:35},{wch:18},{wch:8},{wch:22},{wch:55},{wch:55},{wch:12},{wch:8},{wch:18},{wch:42},{wch:42},{wch:42}];
   XLSX.utils.book_append_sheet(wb,ws,'Leads FX Change Devises');
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['LeadFX Pro','Prospection Change de Devises'],['Date',new Date().toLocaleDateString('fr-FR')],['CA ciblé','5 M€ – 105 M€'],['Total leads',shown.length],['Forte exposition',shown.filter(function(c){return c.expo==='Forte';}).length],['SIREN Luhn ✓',shown.filter(function(c){return c.sirenOk;}).length],['Paires FX',Array.from(new Set(shown.reduce(function(a,c){return a.concat(c.pairs||[]);},[])) ).join(', ')]]),'Résumé');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['LeadFX Pro','Prospection Change de Devises'],['Date',new Date().toLocaleDateString('fr-FR')],['CA ciblé','5 M€ – 125 M€'],['Total leads',shown.length],['Forte exposition',shown.filter(function(c){return c.expo==='Forte';}).length],['SIREN Luhn ✓',shown.filter(function(c){return c.sirenOk;}).length],['Paires FX',Array.from(new Set(shown.reduce(function(a,c){return a.concat(c.pairs||[]);},[])) ).join(', ')]]),'Résumé');
   XLSX.writeFile(wb,'LeadFX_'+new Date().toISOString().slice(0,10)+'.xlsx');
 }
 </script>
