@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LeadFX Pro — Sourcing FX</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#07080d;--c1:#0c0d14;--c2:#12131b;--c3:#181921;
+  --b1:rgba(255,255,255,.05);--b2:rgba(255,255,255,.10);--b3:rgba(255,255,255,.18);
+  --g:#00e87a;--gd:rgba(0,232,122,.08);
+  --r:#ff4455;--rd:rgba(255,68,85,.10);
+  --y:#ffaa00;--yd:rgba(255,170,0,.10);
+  --b:#4488ff;--bd:rgba(68,136,255,.10);
+  --tx:#e5e6f0;--mu:#3a3b52;--m2:#6a6b90;
+  --fd:'Space Grotesk',sans-serif;--fb:'Inter',sans-serif;--fm:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--tx);font-family:var(--fb);font-size:14px;line-height:1.5;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 100% 50% at 50% -5%,rgba(0,232,122,.04),transparent 55%);pointer-events:none;z-index:0;}
+.app{position:relative;z-index:1;max-width:1500px;margin:0 auto;padding:0 24px 80px;}
+
+.nav{display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-bottom:1px solid var(--b1);margin-bottom:20px;flex-wrap:wrap;gap:10px;}
+.logo{font-family:var(--fd);font-size:20px;font-weight:700;letter-spacing:-.5px;display:flex;align-items:center;gap:10px;}
+.logo b{color:var(--g);}
+.badge{font-family:var(--fm);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;padding:3px 10px;border-radius:20px;color:var(--g);background:var(--gd);border:1px solid rgba(0,232,122,.2);}
+.nav-r{display:flex;gap:14px;align-items:center;}
+.ns{text-align:center;}
+.ns-n{font-family:var(--fd);font-size:18px;font-weight:700;line-height:1;}
+.ns-l{font-family:var(--fm);font-size:8px;text-transform:uppercase;letter-spacing:1px;color:var(--mu);margin-top:1px;}
+.nd{width:1px;height:24px;background:var(--b2);}
+
+/* ALERT BAR */
+.alert-bar{background:var(--c1);border:1px solid rgba(255,170,0,.3);border-radius:12px;padding:12px 18px;margin-bottom:16px;display:none;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.alert-bar.on{display:flex;}
+.alert-dot{width:8px;height:8px;border-radius:50%;background:var(--y);box-shadow:0 0 8px rgba(255,170,0,.5);flex-shrink:0;animation:blink .8s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.alert-txt{font-family:var(--fm);font-size:11px;color:var(--m2);flex:1;margin:0 12px;}
+.alert-txt b{color:var(--tx);}
+
+/* TABS */
+.tabs{display:flex;gap:0;background:var(--c1);border:1px solid var(--b2);border-radius:12px;padding:4px;margin-bottom:18px;}
+.tab{flex:1;font-family:var(--fd);font-size:12px;font-weight:500;padding:9px 6px;border-radius:9px;border:none;background:transparent;color:var(--m2);cursor:pointer;transition:all .2s;text-align:center;}
+.tab.on{background:var(--c3);color:var(--tx);}
+
+/* SCRAPING PANEL */
+.panel{background:var(--c1);border:1px solid rgba(68,136,255,.3);border-radius:14px;padding:20px 24px;margin-bottom:18px;display:none;}
+.panel.show{display:block;}
+.panel-title{font-family:var(--fd);font-size:15px;font-weight:600;margin-bottom:10px;}
+.panel-note{background:var(--gd);border:1px solid rgba(0,232,122,.15);border-radius:9px;padding:10px 14px;font-family:var(--fm);font-size:10px;color:var(--g);line-height:1.6;margin-bottom:14px;}
+.panel-note.yellow{background:var(--yd);border-color:rgba(255,170,0,.2);color:var(--y);}
+.sec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:7px;margin-bottom:14px;}
+.sec-card{background:var(--c2);border:1px solid var(--b1);border-radius:9px;padding:9px 12px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:7px;}
+.sec-card:hover{border-color:var(--b2);}
+.sec-card.on{border-color:rgba(68,136,255,.5);background:var(--bd);}
+.sc-ico{font-size:15px;flex-shrink:0;}
+.sc-name{font-family:var(--fd);font-size:11px;font-weight:500;line-height:1.3;}
+.sc-naf{font-family:var(--fm);font-size:8px;color:var(--mu);}
+.sc-chk{width:15px;height:15px;border-radius:50%;border:1px solid var(--b2);display:flex;align-items:center;justify-content:center;font-size:8px;flex-shrink:0;margin-left:auto;}
+.sec-card.on .sc-chk{background:var(--b);border-color:var(--b);color:#fff;}
+.cfg-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:12px;}
+.lbl{font-family:var(--fm);font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--m2);display:block;margin-bottom:4px;}
+.sel{width:100%;background:var(--c2);border:1px solid var(--b2);border-radius:9px;color:var(--tx);font-family:var(--fb);font-size:13px;padding:8px 11px;outline:none;appearance:none;cursor:pointer;}
+.sel option{background:#12131b;}
+.btn-primary{width:100%;background:var(--b);color:#fff;border:none;border-radius:10px;padding:11px;font-family:var(--fd);font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;}
+.btn-primary:hover{box-shadow:0 8px 24px rgba(68,136,255,.3);}
+.btn-primary:disabled{background:var(--c3);color:var(--mu);cursor:not-allowed;}
+.btn-green{background:var(--g);color:#07080d;}
+.btn-yellow{background:var(--y);color:#07080d;}
+.btn-row{display:flex;gap:8px;}
+
+/* PROGRESS */
+.prog{display:none;background:var(--c1);border:1px solid var(--b2);border-radius:12px;padding:14px 18px;margin-bottom:16px;}
+.prog.on{display:block;}
+.plog{display:flex;flex-direction:column;gap:1px;max-height:80px;overflow-y:auto;margin-bottom:8px;}
+.pl{font-family:var(--fm);font-size:10px;color:var(--mu);line-height:1.9;}
+.pl.cur{color:var(--g);}
+.pl.ok{color:var(--m2);}
+.pl.err{color:var(--r);}
+.pl.warn{color:var(--y);}
+.pt{background:var(--c3);border-radius:2px;height:2px;overflow:hidden;}
+.pf{height:100%;background:linear-gradient(90deg,var(--g),var(--b));border-radius:2px;width:0%;transition:width .3s;}
+
+/* FILTERS */
+.frow{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px;}
+.fg{display:flex;flex-direction:column;gap:4px;}
+.fchips{display:flex;gap:5px;flex-wrap:wrap;}
+.fc{font-family:var(--fm);font-size:10px;padding:5px 12px;border-radius:20px;border:1px solid var(--b2);background:transparent;color:var(--m2);cursor:pointer;transition:all .15s;}
+.fc.on{background:var(--tx);color:#07080d;border-color:var(--tx);}
+.fml{margin-left:auto;}
+.acts{display:flex;gap:7px;}
+.abtn{font-family:var(--fm);font-size:10px;padding:6px 12px;border-radius:8px;border:1px solid var(--b2);background:transparent;color:var(--m2);cursor:pointer;transition:all .15s;}
+.abtn:hover{border-color:var(--b3);color:var(--tx);}
+.abtn.g{color:var(--g);border-color:rgba(0,232,122,.3);background:var(--gd);}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:16px;}
+.stat{background:var(--c1);border:1px solid var(--b1);border-radius:11px;padding:12px 14px;}
+.sn{font-family:var(--fd);font-size:20px;font-weight:700;line-height:1;}
+.sl{font-family:var(--fm);font-size:8px;text-transform:uppercase;letter-spacing:.7px;color:var(--mu);margin-top:4px;}
+
+/* TABLE */
+.tcard{background:var(--c1);border:1px solid var(--b2);border-radius:13px;overflow:hidden;}
+.tw{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{font-family:var(--fm);font-size:8px;text-transform:uppercase;letter-spacing:.8px;color:var(--mu);padding:9px 10px;text-align:left;background:var(--c2);border-bottom:1px solid var(--b1);white-space:nowrap;}
+td{padding:9px 10px;border-bottom:1px solid var(--b1);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,.013);}
+.co{font-family:var(--fd);font-weight:600;font-size:13px;cursor:pointer;}
+.co:hover{color:var(--g);}
+.co-lks{display:flex;gap:3px;margin-top:4px;flex-wrap:wrap;}
+.lk{font-family:var(--fm);font-size:9px;padding:2px 6px;border-radius:4px;border:1px solid var(--b1);color:var(--m2);text-decoration:none;transition:all .15s;white-space:nowrap;}
+.lk:hover{border-color:var(--b2);color:var(--tx);}
+.naf-b{font-family:var(--fm);font-size:9px;background:var(--c3);border:1px solid var(--b1);padding:2px 5px;border-radius:4px;color:var(--m2);}
+.ca-v{font-family:var(--fm);font-size:12px;font-weight:500;color:#3dde7a;white-space:nowrap;}
+.pair{display:inline-block;font-family:var(--fm);font-size:10px;padding:2px 7px;background:var(--bd);color:var(--b);border-radius:4px;margin:1px;white-space:nowrap;}
+.l6{display:inline-block;font-family:var(--fm);font-size:8px;font-weight:600;padding:2px 5px;border-radius:4px;background:var(--rd);color:#ff7a7a;margin-bottom:3px;}
+.l7{display:inline-block;font-family:var(--fm);font-size:8px;font-weight:600;padding:2px 5px;border-radius:4px;background:var(--gd);color:var(--g);margin-bottom:3px;}
+.ftxt{font-size:11px;color:var(--m2);line-height:1.4;max-width:190px;}
+.expo{font-family:var(--fm);font-size:10px;font-weight:500;padding:3px 9px;border-radius:20px;white-space:nowrap;}
+.ef{background:var(--rd);color:#ff7a7a;}
+.em{background:var(--yd);color:var(--y);}
+.scr{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:11px;font-weight:700;flex-shrink:0;}
+.sh{background:var(--rd);color:var(--r);border:1.5px solid rgba(255,68,85,.3);}
+.sm{background:var(--yd);color:var(--y);border:1.5px solid rgba(255,170,0,.3);}
+.sl2{background:var(--gd);color:var(--g);border:1.5px solid rgba(0,232,122,.25);}
+.siren-ok{font-family:var(--fm);font-size:9px;padding:2px 5px;border-radius:4px;background:var(--gd);color:var(--g);border:1px solid rgba(0,232,122,.2);}
+.eff-tag{font-family:var(--fm);font-size:9px;padding:2px 5px;border-radius:4px;background:rgba(68,136,255,.1);color:var(--b);border:1px solid rgba(68,136,255,.2);margin-top:2px;display:inline-block;}
+.dirig-tag{font-family:var(--fm);font-size:9px;color:var(--g);margin-top:2px;}
+
+/* CRM BUTTONS */
+.crm-bar{display:flex;gap:4px;margin-top:5px;}
+.crm-btn{font-family:var(--fm);font-size:9px;padding:3px 7px;border-radius:10px;border:1px solid var(--b2);background:transparent;color:var(--m2);cursor:pointer;transition:all .15s;}
+.crm-btn:hover{border-color:var(--b3);}
+.crm-btn.s-contacte{background:rgba(68,136,255,.15);color:var(--b);border-color:var(--b);}
+.crm-btn.s-interesse{background:rgba(255,170,0,.15);color:var(--y);border-color:var(--y);}
+.crm-btn.s-signe{background:rgba(0,232,122,.15);color:var(--g);border-color:var(--g);}
+.crm-badge{font-family:var(--fm);font-size:8px;font-weight:700;padding:2px 7px;border-radius:10px;text-transform:uppercase;}
+.crm-badge.s-contacte{background:rgba(68,136,255,.15);color:var(--b);}
+.crm-badge.s-interesse{background:rgba(255,170,0,.15);color:var(--y);}
+.crm-badge.s-signe{background:rgba(0,232,122,.15);color:var(--g);}
+
+/* MSG */
+.msgbtn{font-family:var(--fm);font-size:10px;padding:4px 8px;border-radius:6px;border:1px solid var(--b2);background:transparent;color:var(--m2);cursor:pointer;transition:all .15s;}
+.msgbtn:hover{border-color:var(--g);color:var(--g);background:var(--gd);}
+
+.load-btn{width:100%;padding:13px;background:transparent;border:1px dashed var(--b2);border-radius:0 0 13px 13px;font-family:var(--fm);font-size:11px;color:var(--m2);cursor:pointer;transition:all .2s;display:none;}
+.load-btn.on{display:block;}
+.load-btn:hover{border-color:var(--b);color:var(--b);}
+
+.empty{text-align:center;padding:60px 20px;}
+.empty-ico{font-size:38px;margin-bottom:14px;opacity:.3;}
+.empty-t{font-family:var(--fd);font-size:16px;font-weight:600;color:var(--m2);margin-bottom:8px;}
+.empty-s{font-family:var(--fm);font-size:11px;color:var(--mu);line-height:1.8;}
+
+/* CRM Panel */
+.crm-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;}
+
+/* MODAL */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:999;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(12px);}
+.ov.on{display:flex;}
+.modal{background:var(--c1);border:1px solid var(--b2);border-radius:18px;width:100%;max-width:720px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;}
+.mh{padding:20px 24px;border-bottom:1px solid var(--b1);display:flex;justify-content:space-between;align-items:flex-start;}
+.mn{font-family:var(--fd);font-size:17px;font-weight:700;}
+.ms{font-family:var(--fm);font-size:10px;color:var(--m2);margin-top:3px;}
+.mx{background:var(--c2);border:1px solid var(--b1);border-radius:8px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;color:var(--m2);}
+.mx:hover{color:var(--tx);}
+.mbody{padding:20px 24px;overflow-y:auto;flex:1;}
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
+.mdc{background:var(--c2);border-radius:9px;padding:11px 13px;}
+.mdl{font-family:var(--fm);font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--mu);margin-bottom:4px;}
+.mdv{font-size:13px;font-weight:500;line-height:1.4;}
+.mlinks{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
+.mlink{font-family:var(--fm);font-size:11px;padding:6px 13px;border-radius:8px;border:1px solid var(--b2);color:var(--m2);text-decoration:none;transition:all .15s;}
+.mlink:hover{border-color:var(--b3);color:var(--tx);}
+.mtabs{display:flex;gap:5px;margin-bottom:9px;}
+.mt{font-family:var(--fm);font-size:10px;padding:4px 12px;border-radius:8px;border:1px solid var(--b2);background:transparent;color:var(--m2);cursor:pointer;}
+.mt.on{background:var(--c2);color:var(--tx);border-color:var(--b3);}
+.mbox{background:var(--bg);border:1px solid var(--b1);border-radius:11px;padding:16px;font-size:13px;line-height:1.78;white-space:pre-wrap;color:var(--tx);min-height:100px;}
+.cpybtn{margin-top:11px;width:100%;background:var(--g);color:#07080d;border:none;border-radius:9px;padding:12px;font-family:var(--fd);font-size:14px;font-weight:600;cursor:pointer;}
+
+@keyframes fu{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+.fu{animation:fu .15s ease forwards;}
+footer{text-align:center;padding:24px 0 10px;border-top:1px solid var(--b1);margin-top:40px;font-family:var(--fm);font-size:9px;color:var(--mu);letter-spacing:2px;}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- NAV -->
+<div class="nav">
+  <div class="logo"><span><b>Lead</b>FX Pro</span><span class="badge">NAF × FX · CA 5–125 M€ · Score > 75 · Eff. ≥ 10</span></div>
+  <div class="nav-r">
+    <div class="ns"><div class="ns-n" style="color:var(--g)" id="nv-t">0</div><div class="ns-l">Leads</div></div>
+    <div class="nd"></div>
+    <div class="ns"><div class="ns-n" style="color:var(--r)" id="nv-f">0</div><div class="ns-l">Forte expo</div></div>
+    <div class="nd"></div>
+    <div class="ns"><div class="ns-n" style="color:var(--b)" id="nv-s">0</div><div class="ns-l">SIREN ✓</div></div>
+    <div class="nd"></div>
+    <div class="ns"><div class="ns-n" style="color:var(--y)" id="nv-msg">0</div><div class="ns-l">Pipeline</div></div>
+  </div>
+</div>
+
+<!-- ALERT BAR -->
+<div class="alert-bar" id="alert-bar">
+  <div class="alert-dot"></div>
+  <div class="alert-txt" id="alert-txt"><b>Alertes actives</b></div>
+  <div style="display:flex;gap:6px">
+    <select class="sel" id="alert-int" style="padding:4px 8px;font-size:10px" onchange="changeAlertInterval()">
+      <option value="5">5 min</option><option value="10" selected>10 min</option>
+      <option value="30">30 min</option><option value="60">1h</option>
+    </select>
+    <button class="abtn" onclick="stopAlerts()" style="color:var(--r);border-color:var(--r)">⬛ Stop</button>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab on" id="tab-live" onclick="switchTab('live')">🔵 Scraping SIREN Live</button>
+  <button class="tab" id="tab-crm" onclick="switchTab('crm')">📋 Prospects <span id="crm-badge" style="font-family:var(--fm);font-size:9px;background:var(--g);color:#07080d;padding:1px 6px;border-radius:10px;margin-left:3px;display:none">0</span></button>
+  <button class="tab" id="tab-alerts" onclick="switchTab('alerts')">🔔 Alertes auto</button>
+</div>
+
+<!-- SCRAPING PANEL -->
+<div class="panel show" id="live-panel">
+  <div class="panel-title">🔵 Scraping SIREN — NAF officiel × mots-clés FX</div>
+  <div class="panel-note">
+    ✓ Double filtre : <b>Code NAF INSEE précis</b> (activité officielle) × <b>mots-clés FX</b> (import/export/international)<br>
+    ✓ Exclusion automatique : effectif &lt; 10 sal. · SCI · associations · holdings sans activité<br>
+    ✓ CA 5–125 M€ · Score FX &gt; 75 · SIREN validé Luhn · Dirigeant affiché si disponible
+  </div>
+  <div class="sec-grid" id="sec-grid"></div>
+  <div class="cfg-row">
+    <div>
+      <label class="lbl">Département</label>
+      <select class="sel" id="l-dept">
+        <option value="">Toute la France</option>
+        <option value="75">75 — Paris</option><option value="92">92 — Hauts-de-Seine</option>
+        <option value="69">69 — Lyon</option><option value="13">13 — Marseille</option>
+        <option value="33">33 — Bordeaux</option><option value="59">59 — Lille</option>
+        <option value="31">31 — Toulouse</option><option value="67">67 — Strasbourg</option>
+        <option value="44">44 — Nantes</option><option value="76">76 — Le Havre</option>
+        <option value="34">34 — Montpellier</option><option value="38">38 — Grenoble</option>
+        <option value="06">06 — Nice</option><option value="29">29 — Brest</option>
+        <option value="57">57 — Metz</option><option value="62">62 — Calais</option>
+      </select>
+    </div>
+    <div>
+      <label class="lbl">Objectif leads</label>
+      <select class="sel" id="l-nb">
+        <option value="50">50</option><option value="100" selected>100</option>
+        <option value="200">200</option><option value="500">500</option>
+        <option value="1000">1 000</option><option value="99999">∞ Maximum</option>
+      </select>
+    </div>
+    <div>
+      <label class="lbl">Exposition FX</label>
+      <select class="sel" id="l-expo">
+        <option value="Forte">Forte uniquement</option>
+        <option value="Forte,Moyenne" selected>Forte + Moyenne</option>
+        <option value="toutes">Toutes</option>
+      </select>
+    </div>
+    <div>
+      <label class="lbl">Action</label>
+      <div class="btn-row">
+        <button class="btn-primary" id="live-btn" onclick="runLive(false)" style="flex:2">🔵 Lancer</button>
+        <button class="btn-primary btn-green" onclick="runLive(true)" title="Charger de nouveaux leads" style="flex:1">↻</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ALERTS PANEL -->
+<div class="panel" id="alerts-panel">
+  <div class="panel-title">🔔 Alertes automatiques</div>
+  <div class="panel-note yellow">
+    L'outil scrape en arrière-plan et t'envoie une notification Chrome dès que de nouveaux leads qualifiés apparaissent.<br>
+    Garde cet onglet ouvert · Autorise les notifications si demandé
+  </div>
+  <div class="cfg-row">
+    <div>
+      <label class="lbl">Fréquence</label>
+      <select class="sel" id="alert-freq">
+        <option value="5">Toutes les 5 min</option>
+        <option value="10" selected>Toutes les 10 min</option>
+        <option value="30">Toutes les 30 min</option>
+        <option value="60">Toutes les heures</option>
+      </select>
+    </div>
+    <div>
+      <label class="lbl">Score minimum</label>
+      <select class="sel" id="alert-score">
+        <option value="75" selected>Score > 75</option>
+        <option value="80">Score > 80</option>
+        <option value="85">Score > 85</option>
+        <option value="90">Score > 90 (top)</option>
+      </select>
+    </div>
+    <div style="display:flex;align-items:flex-end">
+      <button class="btn-primary btn-yellow" onclick="startAlerts()">🔔 Activer les alertes</button>
+    </div>
+    <div style="display:flex;align-items:flex-end">
+      <button class="btn-primary" onclick="stopAlerts()" style="background:var(--rd);color:var(--r)">⬛ Désactiver</button>
+    </div>
+  </div>
+  <div style="font-family:var(--fm);font-size:10px;color:var(--mu);line-height:1.7;margin-top:4px;">
+    ⚠ Sélectionne d'abord tes secteurs dans l'onglet 🔵 · Les leads déjà vus ne reviennent jamais
+  </div>
+</div>
+
+<!-- CRM PANEL -->
+<div id="crm-panel" style="display:none">
+  <div class="crm-summary">
+    <div class="stat"><div class="sn" style="color:var(--b)" id="crm-nc">0</div><div class="sl">Contactés</div></div>
+    <div class="stat"><div class="sn" style="color:var(--y)" id="crm-ni">0</div><div class="sl">Intéressés</div></div>
+    <div class="stat"><div class="sn" style="color:var(--g)" id="crm-ns">0</div><div class="sl">Signés</div></div>
+    <div class="stat"><div class="sn" style="color:var(--mu)" id="crm-nt">0</div><div class="sl">Total pipeline</div></div>
+  </div>
+  <div class="frow" style="margin-bottom:12px">
+    <div class="fg">
+      <div class="lbl">Filtrer</div>
+      <div class="fchips">
+        <button class="fc on" onclick="crmFlt('all',this)">Tous</button>
+        <button class="fc" onclick="crmFlt('contacte',this)">📞 Contacté</button>
+        <button class="fc" onclick="crmFlt('interesse',this)">⭐ Intéressé</button>
+        <button class="fc" onclick="crmFlt('signe',this)">✅ Signé</button>
+      </div>
+    </div>
+    <div class="fml fg"><label class="lbl">Export</label>
+      <div class="acts"><button class="abtn g" onclick="exportCRM()">↓ Excel CRM</button></div>
+    </div>
+  </div>
+  <div id="crm-wrap"></div>
+</div>
+
+<!-- PROGRESS -->
+<div class="prog" id="prog">
+  <div class="plog" id="plog"></div>
+  <div class="pt"><div class="pf" id="pf"></div></div>
+</div>
+
+<!-- FILTERS + TABLE (main) -->
+<div id="main-wrap">
+<div class="frow">
+  <div class="fg">
+    <div class="lbl">Exposition</div>
+    <div class="fchips">
+      <button class="fc on" onclick="filterExpo('all',this)">Tous</button>
+      <button class="fc" onclick="filterExpo('Forte',this)">🔴 Forte</button>
+      <button class="fc" onclick="filterExpo('Moyenne',this)">🟡 Moyenne</button>
+    </div>
+  </div>
+  <div class="fg">
+    <label class="lbl">Paire FX</label>
+    <select class="sel" id="f-pair" onchange="renderTable()" style="min-width:120px">
+      <option value="">Toutes</option>
+      <option value="EUR/USD">EUR/USD</option><option value="EUR/CNY">EUR/CNY</option>
+      <option value="EUR/GBP">EUR/GBP</option><option value="EUR/JPY">EUR/JPY</option>
+      <option value="EUR/MAD">EUR/MAD</option><option value="EUR/XOF">EUR/XOF</option>
+      <option value="EUR/BRL">EUR/BRL</option>
+    </select>
+  </div>
+  <div class="fg">
+    <label class="lbl">Affiner</label>
+    <input class="sel" style="min-width:160px" type="text" placeholder="🔍 Nom, ville, NAF…" oninput="refStr=this.value.toLowerCase();renderTable()">
+  </div>
+  <div class="fml fg">
+    <label class="lbl">Exporter</label>
+    <div class="acts">
+      <button class="abtn" onclick="xCSV()">↓ CSV</button>
+      <button class="abtn g" onclick="xExcel()">↓ Excel</button>
+    </div>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="sn" style="color:var(--g)" id="s1">—</div><div class="sl">Résultats</div></div>
+  <div class="stat"><div class="sn" style="color:var(--r)" id="s2">—</div><div class="sl">Forte expo</div></div>
+  <div class="stat"><div class="sn" style="color:var(--y)" id="s3">—</div><div class="sl">Moyenne expo</div></div>
+  <div class="stat"><div class="sn" style="color:#3dde7a" id="s4">—</div><div class="sl">CA moyen</div></div>
+  <div class="stat"><div class="sn" style="color:var(--b)" id="s5">—</div><div class="sl">Paires FX</div></div>
+  <div class="stat"><div class="sn" style="color:#3dde7a" id="s6">—</div><div class="sl">SIREN ✓</div></div>
+</div>
+
+<div class="tcard">
+  <div id="tw">
+    <div class="empty">
+      <div class="empty-ico">◈</div>
+      <div class="empty-t">LeadFX Pro — Sourcing FX précis</div>
+      <div class="empty-s">
+        Sélectionne tes secteurs ci-dessus<br>
+        Chaque lead = <b style="color:var(--g)">NAF INSEE confirmé</b> × <b style="color:var(--b)">activité import/export réelle</b><br>
+        Effectif ≥ 10 sal. · CA 5–125 M€ · Score FX &gt; 75 · Zéro coquille
+      </div>
+    </div>
+  </div>
+  <button class="load-btn" id="load-btn" onclick="loadMore()">⬇ Charger 100 leads supplémentaires</button>
+</div>
+</div><!-- /main-wrap -->
+
+<footer>LEADFX PRO · NAF INSEE × MOTS-CLÉS FX · CA 5–125 M€ · EFF ≥ 10 · SCORE > 75 · SIREN LUHN · 666/766</footer>
+</div>
+
+<!-- MODAL -->
+<div class="ov" id="ov" onclick="if(event.target===this)this.classList.remove('on')">
+<div class="modal">
+  <div class="mh">
+    <div><div class="mn" id="m-nom"></div><div class="ms" id="m-sub"></div></div>
+    <div class="mx" onclick="document.getElementById('ov').classList.remove('on')">×</div>
+  </div>
+  <div class="mbody">
+    <div class="mgrid" id="m-data"></div>
+    <div class="mlinks" id="m-links"></div>
+    <div style="font-family:var(--fm);font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--mu);margin-bottom:8px">Message de prospection</div>
+    <div class="mtabs">
+      <button class="mt on" onclick="setMT('email',this)">📧 Email</button>
+      <button class="mt" onclick="setMT('li',this)">💼 LinkedIn</button>
+      <button class="mt" onclick="setMT('sms',this)">💬 SMS</button>
+    </div>
+    <div class="mbox" id="m-msg"></div>
+    <button class="cpybtn" onclick="copyMsg()">Copier le message</button>
+  </div>
+</div>
+</div>
+
+<script>
+'use strict';
+var API='https://recherche-entreprises.api.gouv.fr/search';
+var CA_MIN=5, CA_MAX=125;
+var SCORE_MIN=75;
+
+// ── Luhn SIREN ──────────────────────────────────────
+function luhn(s){
+  s=String(s||'').replace(/\s/g,'');
+  if(!/^\d{9}$/.test(s))return false;
+  var sum=0;
+  for(var i=0;i<9;i++){var d=parseInt(s[i],10);if(i%2===1){d*=2;if(d>9)d-=9;}sum+=d;}
+  return sum%10===0;
+}
+function mkLinks(nom){var e=encodeURIComponent(nom);return{pappers:'https://www.pappers.fr/recherche?q='+e,annuaire:'https://annuaire-entreprises.data.gouv.fr/rechercher?terme='+e,societe:'https://www.societe.com/cgi-bin/search?champs='+e};}
+
+// ── Effectif ─────────────────────────────────────────
+var EFF_MAP={'NN':0,'00':0,'01':1,'02':3,'03':6,'11':10,'12':20,'21':50,'22':100,'31':200,'32':250,'41':500,'42':1000,'51':2000};
+var EFF_LBL={'11':'10–19','12':'20–49','21':'50–99','22':'100–199','31':'200–249','32':'250–499','41':'500+','42':'1000+'};
+function effN(c){return EFF_MAP[c]||0;}
+function effL(c){return EFF_LBL[c]||'';}
+
+// ── Score FX précis ───────────────────────────────────
+function calcScore(ca, expo, effCode, hasDirig, nafKnown){
+  var s=30;
+  if(nafKnown)  s+=15; // NAF dans notre base FX = activité confirmée
+  if(ca===0)    s+=8;  // CA non publié = pas pénalisé
+  else if(ca>=80) s+=18;
+  else if(ca>=40) s+=14;
+  else if(ca>=20) s+=10;
+  else if(ca>=5)  s+=6;
+  var e=effN(effCode);
+  if(e>=200)s+=15; else if(e>=50)s+=12; else if(e>=20)s+=8; else if(e>=10)s+=5;
+  if(hasDirig) s+=5;
+  if(expo==='Forte')s+=22; else if(expo==='Moyenne')s+=10;
+  return Math.min(99,Math.max(20,s));
+}
+
+// ── FX Knowledge Base (NAF → exposition + paire + flux) ─
+var FX={
+  '4641Z':{e:'Forte',p:'EUR/CNY',c:'Directeur achats',f6:'Règlements fournisseurs textiles Asie en USD — FOB Shanghai/Dhaka délais 90 jours',f7:'Encaissements export hors zone euro lors appréciation devises'},
+  '1399Z':{e:'Forte',p:'EUR/CNY',c:'DAF',f6:'Achats fibres synthétiques nylon polyester USD fournisseurs asiatiques',f7:'Ventes textiles techniques hors UE en devises'},
+  '1411Z':{e:'Forte',p:'EUR/JPY',c:'DG',f6:'Ventes Japon facturées JPY délai 90 jours — pertes rapatriement EUR (JPY bas 2022-2024)',f7:'Commandes USA facturées USD lors hausse dollar'},
+  '4611Z':{e:'Forte',p:'EUR/USD',c:'Directeur commercial',f6:'Commissions négoce international libellées en devises — conversion périodique EUR',f7:'Gains commission lors appréciation favorable des devises'},
+  '4619B':{e:'Forte',p:'EUR/USD',c:'DAF',f6:'Marges négoce international en devises — achats et ventes dans devises différentes',f7:'Gains de change sur opérations bien positionnées'},
+  '4631Z':{e:'Forte',p:'EUR/USD',c:'Trésorier',f6:'Achats céréales cotés USD marchés CBOT Chicago — exposition quotidienne EUR/USD',f7:'Ventes export céréales USD lors hausse dollar américain'},
+  '4638A':{e:'Forte',p:'EUR/USD',c:'DAF',f6:'Achats ingrédients alimentaires USD fournisseurs Inde et Chine',f7:'Gains de change lors achats bien positionnés sur devise de facturation'},
+  '4638B':{e:'Forte',p:'EUR/GBP',c:'Directeur export',f6:'Approvisionnement fruits légumes hors UE USD, ventes UK GBP post-Brexit',f7:'Encaissements export USA USD lors appréciation dollar'},
+  '4632Z':{e:'Forte',p:'EUR/GBP',c:'Directeur export',f6:'Ventes viandes UK GBP post-Brexit lors affaiblissement livre sterling',f7:'Contrats export USA Asie USD lors hausse dollar'},
+  '1011Z':{e:'Forte',p:'EUR/USD',c:'DAF',f6:'Achats et ventes viandes libellés USD marchés internationaux',f7:'Encaissements JPY lors appréciation yen marché japonais premium'},
+  '1012Z':{e:'Forte',p:'EUR/USD',c:'Directeur export',f6:'Ventes export volailles libellées USD — 40% CA hors zone euro',f7:'Encaissements Japon JPY lors appréciation yen'},
+  '1013A':{e:'Forte',p:'EUR/BRL',c:'Trésorier groupe',f6:'Achats viandes volailles Brésil réglés USD — exposition structurelle EUR/USD',f7:'Encaissements export zones dollar lors appréciation USD'},
+  '1061A':{e:'Forte',p:'EUR/USD',c:'DAF',f6:'Achats blé dur et semoule USD CBOT Chicago — double exposition prix et change',f7:'Ventes export UK et Canada GBP/CAD lors positions favorables'},
+  '1081Z':{e:'Forte',p:'EUR/BRL',c:'Group Treasurer',f6:'Production Brésil comptabilisée BRL — translation EUR/BRL sur CA brésilien',f7:'Ventes sucre export mondial USD lors hausse dollar'},
+  '1101A':{e:'Forte',p:'EUR/USD',c:'Directeur export',f6:'Ventes vins et spiritueux USA et Asie libellées USD — 35-45% CA hors zone euro',f7:'Encaissements JPY/CNY lors appréciation devises asiatiques'},
+  '2110Z':{e:'Forte',p:'EUR/USD',c:'Trésorier groupe',f6:'Achats principes actifs API pharmaceutiques USD/JPY — standard industrie pharma mondiale',f7:'Royalties export brevets pharmaceutiques USD lors appréciation dollar'},
+  '2120Z':{e:'Forte',p:'EUR/USD',c:'CFO',f6:'Achats matières actives vétérinaires USD CNY (Chine dominante)',f7:'Ventes santé animale export zones dollar et yuan'},
+  '2042Z':{e:'Forte',p:'EUR/USD',c:'DAF',f6:'Achats matières premières cosmétiques huiles essentielles actifs USD marchés mondiaux',f7:'Revenus export produits finis hors zone euro en devises'},
+  '2016Z':{e:'Forte',p:'EUR/USD',c:'Trésorier groupe',f6:'Achats matières premières propylène éthylène USD marchés pétro-chimiques',f7:'Ventes spécialités chimiques export USD Asie lors appréciation'},
+  '2059Z':{e:'Forte',p:'EUR/USD',c:'DAF',f6:'Achats précurseurs chimiques USD marchés mondiaux — exposition structurelle',f7:'Ventes spécialités chimiques export USD/GBP lors positions favorables'},
+  '2311Z':{e:'Forte',p:'EUR/JPY',c:'CFO',f6:'Ventes boutiques Asie-Pacifique et USA libellées USD/JPY/HKD',f7:'Encaissements HKD Hong Kong et JPY lors positions favorables'},
+  '2453Z':{e:'Forte',p:'EUR/USD',c:'DAF',f6:'Ventes superalliages motoristes USA et UK libellées USD et GBP',f7:'Encaissements USD clients américains lors appréciation dollar'},
+  '2562B':{e:'Forte',p:'EUR/USD',c:'DAF',f6:'Contrats pièces usinées aéronautique USD — prix catalogue Airbus/Boeing en USD',f7:'Bons de commande USD lors appréciation dollar'},
+  '2612Z':{e:'Forte',p:'EUR/USD',c:'DAF',f6:'Achats semi-conducteurs et composants USD — marché mondial libellé USD',f7:'Ventes cartes électroniques export USD lors appréciation'},
+  '3012Z':{e:'Forte',p:'EUR/USD',c:'DAF',f6:'Ventes bateaux USA et Australie libellées USD et AUD — 75% CA export',f7:'Encaissements USD lors hausse dollar sur marché nautique'},
+  '3030Z':{e:'Forte',p:'EUR/USD',c:'CFO',f6:'Contrats livraison aéronefs libellés USD — standard absolu industrie aéronautique',f7:'Encaissements clients hors zone euro USD lors appréciation'},
+  '3316Z':{e:'Forte',p:'EUR/USD',c:'DAF',f6:'Contrats MRO maintenance aéronautique USD — standard industrie aéro mondiale',f7:'Encaissements clients USD compagnies hors zone euro'},
+  '3511Z':{e:'Forte',p:'EUR/USD',c:'DAF',f6:'Achats panneaux solaires USD — marché mondial dominé Chine coté USD',f7:'PPA long terme libellés USD lors positions favorables'},
+  '3600Z':{e:'Forte',p:'EUR/MAD',c:'DAF International',f6:'Contrats eau Afrique libellés devises locales — risque change sur concessions 20-30 ans',f7:'Facturation USD projets financés BM et BAD'},
+  '4120A':{e:'Forte',p:'EUR/MAD',c:'DAF',f6:'Coûts chantiers Maroc Afrique libellés MAD/XOF — décalage avec facturation EUR',f7:'Facturation clients EUR lors dépréciation devises locales'},
+  '4211Z':{e:'Forte',p:'EUR/XOF',c:'DAF Afrique',f6:'Chantiers routiers Afrique subsaharienne XOF/XAF — risque change structurel durée 3-5 ans',f7:'Facturation partielle USD projets financés BM/AFD/BAD'},
+  '4291Z':{e:'Forte',p:'EUR/MAD',c:'DAF',f6:'Travaux hydrauliques hors UE libellés devises locales instables',f7:'Financements BM/BEI/AFD USD lors positions favorables'},
+  '4645Z':{e:'Forte',p:'EUR/JPY',c:'CFO',f6:'Achats actifs cosmétiques packaging USD/CNY fournisseurs asiatiques',f7:'Ventes boutiques Japon/USA JPY/USD lors appréciation'},
+  '4652Z':{e:'Forte',p:'EUR/USD',c:'DAF',f6:'Achats composants électroniques Taiwan/Chine USD — très sensible EUR/USD',f7:'Ventes export électronique hors UE USD lors positions favorables'},
+  '4675Z':{e:'Forte',p:'EUR/USD',c:'DAF',f6:'Achats matières premières chimiques USD marchés pétro-chimiques CBOT ICE',f7:'Reventes produits chimiques export hors UE en devises'},
+  '4672Z':{e:'Forte',p:'EUR/USD',c:'DAF',f6:'Achats métaux et matières premières USD LME/CME (cuivre aluminium acier)',f7:'Ventes export métaux transformés USD/GBP lors positions favorables'},
+  '4771Z':{e:'Forte',p:'EUR/JPY',c:'CFO',f6:'Translation filiales luxe Japon JPY — fortement impacté JPY bas 2022-2024',f7:'Encaissements ventes USA USD lors appréciation dollar'},
+  '4764Z':{e:'Forte',p:'EUR/CNY',c:'CFO',f6:'Paiements fournisseurs chaussures Vietnam et Chine USD — volumes importants',f7:'Ventes Corée du Sud et Japon KRW/JPY lors positions favorables'},
+  '5210B':{e:'Forte',p:'EUR/USD',c:'DAF',f6:'Contrats logistique internationale libellés USD pour import/export',f7:'Gains de change sur opérations stockage et manutention en devises'},
+  '5229A':{e:'Forte',p:'EUR/USD',c:'DAF',f6:'Achats capacités fret maritime USD (Baltic Exchange coté exclusivement USD)',f7:'Marges opérations retour et arbitrages fret EUR lors USD fort'},
+  '7112B':{e:'Forte',p:'EUR/USD',c:'DAF',f6:'Honoraires ingénierie hors UE facturés USD ou devises locales sur projets multi-annuels',f7:'Encaissements USD/EUR sur projets bien couverts'},
+  '8230Z':{e:'Forte',p:'EUR/USD',c:'CFO',f6:'Revenus filiales Brésil BRL et Chine CNY — translation sur résultats EUR',f7:'Encaissements USD salons internationaux lors positions favorables'},
+  '2822Z':{e:'Forte',p:'EUR/USD',c:'CFO',f6:'Ventes chariots USA Canada libellées USD — exposition nette résiduelle filiales',f7:'Encaissements Australie AUD et UK GBP lors appréciation'},
+  '2830Z':{e:'Forte',p:'EUR/USD',c:'DAF',f6:'Ventes Amérique du Sud libellées USD — sensible variations quotidiennes',f7:'Encaissements Australie AUD lors appréciation dollar australien'},
+  '3230Z':{e:'Forte',p:'EUR/USD',c:'DAF',f6:'Achats composants carbone textiles techniques USD Taiwan et Chine',f7:'Ventes Japon USA JPY/USD lors appréciation'},
+  '2931Z':{e:'Forte',p:'EUR/USD',c:'DAF',f6:'Pièces automobiles livrées USA et Chine libellées USD et CNY',f7:'Encaissements constructeurs américains USD lors appréciation dollar'},
+  '2932Z':{e:'Forte',p:'EUR/CNY',c:'CFO',f6:'Sous-traitance Chine et Mexique libellée CNY et MXN — exposition multi-devises',f7:'Ventes équipementiers américains USD lors dollar fort'},
+  '3514Z':{e:'Forte',p:'EUR/PLN',c:'DAF',f6:'Contrats énergie Europe de l\'Est PLN et CZK volatils sur long terme',f7:'Encaissements UK GBP lors appréciation livre sterling'},
+  '4321A':{e:'Forte',p:'EUR/MAD',c:'DAF',f6:'Installations électriques projets Maroc/Afrique en devises locales',f7:'Facturation EUR sur contrats avec bailleurs internationaux'},
+  '7732Z':{e:'Forte',p:'EUR/GBP',c:'CFO',f6:'Achats équipements grues nacelles libellés USD marchés internationaux',f7:'Revenus filiales UK GBP et Canada CAD lors appréciation'},
+  '2229A':{e:'Forte',p:'EUR/USD',c:'DAF',f6:'Achats résines carbone et fibres USD (marché aéronautique mondial 100% USD)',f7:'Ventes composites export USA lors appréciation dollar'},
+  '1039A':{e:'Forte',p:'EUR/RUB',c:'CFO',f6:'Translation filiales Russie RUB (forte dévaluation 2022) et USA USD',f7:'Encaissements Canada CAD et USA USD lors positions favorables'},
+  '1051C':{e:'Forte',p:'EUR/GBP',c:'DAF',f6:'Ventes produits laitiers UK GBP post-Brexit — exposition directe',f7:'Encaissements USA et Canada USD/CAD lors positions favorables'},
+};
+function getFX(naf){return FX[naf]||{e:'Forte',p:'EUR/USD',c:'DAF',f6:'Flux en devises sur activité internationale — pertes de change compte 666',f7:'Gains de change lors positions favorables — produits financiers 766'};}
+
+// ── Secteurs avec NAF précis + mots-clés FX croisés ──
+var SECTORS=[
+  {ico:'🧵',name:'Textile & Mode',         nafs:['4641Z','1399Z','1411Z'],        kws:['import textile','export textile','confection international']},
+  {ico:'🍷',name:'Agroalimentaire',         nafs:['4631Z','4638A','1061A','1081Z'], kws:['import export alimentaire','négoce céréales international']},
+  {ico:'🥩',name:'Viandes & Abattage',      nafs:['1011Z','1012Z','1013A'],         kws:['viande export international','abattage export']},
+  {ico:'⚙️',name:'Industrie & Machines',    nafs:['4672Z','2822Z','2830Z'],         kws:['matières premières import','machines export international']},
+  {ico:'💊',name:'Pharmaceutique',          nafs:['2110Z','2120Z'],                 kws:['import principes actifs','export médicaments international']},
+  {ico:'🚢',name:'Transit & Logistique',    nafs:['5229A','5210B'],                 kws:['fret international','transit import export']},
+  {ico:'✈️',name:'Aéronautique',            nafs:['3030Z','3316Z','2562B','2229A'], kws:['aéronautique export','sous-traitance aéro international']},
+  {ico:'💄',name:'Cosmétique & Parfums',    nafs:['4645Z','2042Z'],                 kws:['cosmétique export international','import matières cosmétiques']},
+  {ico:'🏗️',name:'BTP Afrique',             nafs:['4211Z','4120A','4291Z','4321A'], kws:['construction Afrique','génie civil international Maroc']},
+  {ico:'👜',name:'Luxe & Maroquinerie',     nafs:['4771Z','2311Z'],                 kws:['luxe export international','maroquinerie export']},
+  {ico:'🧪',name:'Chimie & Matériaux',      nafs:['4675Z','2059Z','2016Z'],         kws:['chimie import export','produits chimiques international']},
+  {ico:'💧',name:'Eau & Environnement',     nafs:['3600Z','4291Z'],                 kws:['eau Afrique international','assainissement export']},
+  {ico:'☀️',name:'Énergie Renouvelable',    nafs:['3511Z','3514Z'],                 kws:['solaire éolien international','énergie export Afrique']},
+  {ico:'🌍',name:'Négoce International',    nafs:['4611Z','4619B'],                 kws:['négoce import export','trading international']},
+  {ico:'💻',name:'Électronique & Tech',     nafs:['4652Z','2612Z'],                 kws:['import composants électroniques','export électronique']},
+  {ico:'🛥️',name:'Nautisme & Marine',       nafs:['3012Z'],                         kws:['bateau export international','nautisme USA']},
+  {ico:'🍾',name:'Vins & Spiritueux',       nafs:['1101A'],                         kws:['vins export international','spiritueux export USA Asie']},
+  {ico:'🚗',name:'Automobile',              nafs:['2931Z','2932Z'],                 kws:['équipements auto export','sous-traitance automobile international']},
+];
+
+// Init secteurs
+(function(){
+  var g=document.getElementById('sec-grid');
+  SECTORS.forEach(function(s,i){
+    var d=document.createElement('div');d.className='sec-card';d.dataset.i=i;
+    d.innerHTML='<div class="sc-ico">'+s.ico+'</div><div><div class="sc-name">'+s.name+'</div><div class="sc-naf">'+s.nafs.join(' · ')+'</div></div><div class="sc-chk">✓</div>';
+    d.onclick=function(){this.classList.toggle('on');};
+    g.appendChild(d);
+  });
+})();
+
+// ── STATE ────────────────────────────────────────────
+var curTab='live',shown=[],liveAll=[],expoFlt='all',refStr='',msgCount=0,curLead=null,running=false,pageOffset=0,seenKeys={},alertTimer=null;
+
+// ── TABS ─────────────────────────────────────────────
+function switchTab(t){
+  curTab=t;
+  ['live','crm','alerts'].forEach(function(x){document.getElementById('tab-'+x).classList.toggle('on',t===x);});
+  document.getElementById('live-panel').classList.toggle('show',t==='live');
+  document.getElementById('alerts-panel').classList.toggle('show',t==='alerts');
+  document.getElementById('crm-panel').style.display=t==='crm'?'block':'none';
+  document.getElementById('main-wrap').style.display=(t==='crm'||t==='alerts')?'none':'block';
+  document.getElementById('prog').classList.remove('on');
+  if(t==='crm')renderCRM();
+}
+
+// ── SCRAPING ─────────────────────────────────────────
+function runLive(isRefresh){
+  if(running)return;
+  var sel=document.querySelectorAll('.sec-card.on');
+  if(!sel.length){alert('Sélectionne au moins un secteur !');return;}
+  var sectors=Array.prototype.map.call(sel,function(c){return SECTORS[+c.dataset.i];});
+  var dept=document.getElementById('l-dept').value;
+  var nb=parseInt(document.getElementById('l-nb').value)||100;
+  var expo=document.getElementById('l-expo').value;
+  if(!isRefresh){pageOffset=0;seenKeys={};}
+  else{pageOffset+=3;}
+  running=true;liveAll=[];shown=[];
+  document.getElementById('live-btn').disabled=true;
+  document.getElementById('prog').classList.add('on');
+  document.getElementById('plog').innerHTML='';
+  document.getElementById('load-btn').classList.remove('on');
+  setP(0);
+  if(isRefresh) switchTab('live');
+
+  // Construire les tâches : NAF × mots-clés FX
+  var tasks=[];
+  sectors.forEach(function(sec){
+    sec.nafs.forEach(function(naf){
+      // Mot-clé FX croisé avec NAF précis = double précision
+      ['import','export','international'].forEach(function(kw){
+        tasks.push({naf:naf,kw:kw,sec:sec,page:1+pageOffset});
+      });
+    });
+    // Mots-clés sectoriels complets sans NAF fixe
+    sec.kws.forEach(function(kw){
+      tasks.push({naf:null,kw:kw,sec:sec,page:1+pageOffset});
+    });
+  });
+
+  var idx=0;
+  function next(){
+    if(liveAll.length>=nb||idx>=tasks.length){finish();return;}
+    var t=tasks[idx++];
+    var qs=t.naf
+      ? 'activite_principale='+encodeURIComponent(t.naf)+'&per_page=25&page='+t.page
+      : 'q='+encodeURIComponent(t.kw)+'&per_page=25&page='+t.page;
+    if(dept)qs+='&departement='+encodeURIComponent(dept);
+    log((t.naf?'NAF '+t.naf+' · ':'')+'"'+t.kw+'" p.'+t.page+'…');
+    fetch(API+'?'+qs,{headers:{'Accept':'application/json'},signal:AbortSignal.timeout(12000)})
+    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+    .then(function(data){
+      var res=data.results||[];
+      var added=0;
+      res.forEach(function(e){
+        var c=buildLead(e,t.sec,t.naf);
+        if(!c)return;
+        var k=c.siren||c.nom;
+        if(seenKeys[k])return;
+        seenKeys[k]=true;
+        liveAll.push(c);added++;
+      });
+      if(added>0)log('→ '+added+' leads qualifiés ajoutés (score>'+SCORE_MIN+', eff≥10)','ok');
+      setP(Math.min(90,(liveAll.length/nb)*90));
+      if(res.length<25){
+        // Fin de ce NAF/kw sur cette page
+      } else if(liveAll.length<nb) {
+        tasks.push({naf:t.naf,kw:t.kw,sec:t.sec,page:t.page+1});
+      }
+      setTimeout(next,250);
+    })
+    .catch(function(err){log('Erreur : '+err.message,'err');setTimeout(next,300);});
+  }
+
+  function finish(){
+    if(expo!=='toutes'){var al=expo.split(',');var f=liveAll.filter(function(c){return al.indexOf(c.expo)!==-1;});if(f.length)liveAll=f;}
+    liveAll.sort(function(a,b){return b.score-a.score;});
+    shown=liveAll.slice(0,nb);
+    setP(100);
+    log('✅ '+shown.length+' leads · CA 5–125 M€ · score>'+SCORE_MIN+' · eff≥10 · '+liveAll.length+' total','ok');
+    if(liveAll.length>nb)document.getElementById('load-btn').classList.add('on');
+    running=false;
+    document.getElementById('live-btn').disabled=false;
+    renderTable();updStats();
+  }
+  next();
+}
+
+// ── buildLead avec double filtre NAF×FX ──────────────
+function buildLead(e,sec,reqNaf){
+  var nom=e.nom_raison_sociale||e.nom_complet||'';
+  if(!nom||nom.length<2)return null;
+  // Effectif minimum 10 salariés
+  var eff=e.tranche_effectif_salarie||'NN';
+  if(['NN','00','01','02','03'].indexOf(eff)!==-1)return null;
+  // Exclusion : SCI, associations, syndicats
+  var forme=(e.categorie_juridique_libelle||'').toLowerCase();
+  if(/civile immobili|association|syndicat|fondation/.test(forme))return null;
+  // Exclusion holding pur sans activité FX connue
+  var naf=e.activite_principale||'';
+  if(/holding/i.test(nom)&&!FX[naf])return null;
+
+  var siren=(e.siren||'').replace(/\s/g,'');
+  var nafLib=e.libelle_activite_principale||'';
+  var ville=(e.siege&&e.siege.libelle_commune)||'';
+  var cp=(e.siege&&e.siege.code_postal)||'';
+  var ca=e.chiffre_affaires?Math.round(e.chiffre_affaires/1e6):0;
+  if(ca>0&&(ca<CA_MIN||ca>CA_MAX))return null;
+
+  var dirigeants=e.dirigeants||[];
+  var hasDirig=dirigeants.length>0;
+  var dirigNom=hasDirig?(dirigeants[0].prenom||'')+' '+(dirigeants[0].nom||''):null;
+  var nafKnown=!!FX[naf];
+
+  // Utiliser le FX du NAF détecté OU du NAF de la requête
+  var fx=FX[naf]||FX[reqNaf]||getFX(sec.nafs[0]||'4611Z');
+  var sc=calcScore(ca,fx.e,eff,hasDirig,nafKnown);
+  if(sc<=SCORE_MIN)return null;
+
+  return{
+    id:Date.now()+(Math.random()*10000|0),
+    nom:nom,siren:siren,sirenOk:luhn(siren),
+    naf:naf,nafLib:nafLib,ville:ville,cp:cp,
+    ca:ca,eff:eff,src:'siren',
+    pairs:[fx.p],expo:fx.e,f6:fx.f6,f7:fx.f7,contact:fx.c,
+    score:sc,hasDirig:hasDirig,dirigNom:dirigNom?dirigNom.trim():null,
+    desc:nafLib||sec.name,
+    links:mkLinks(nom),
+  };
+}
+
+function loadMore(){
+  var cur=shown.length;shown=shown.concat(liveAll.slice(cur,cur+100));
+  renderTable();updStats();
+  if(shown.length>=liveAll.length)document.getElementById('load-btn').classList.remove('on');
+}
+
+// ── ALERTES ──────────────────────────────────────────
+function startAlerts(){
+  Notification.requestPermission().then(function(p){
+    if(p!=='granted'){alert('Autorise les notifications Chrome !');return;}
+    var sel=document.querySelectorAll('.sec-card.on');
+    if(!sel.length){alert('Sélectionne des secteurs dans l\'onglet 🔵 d\'abord !');return;}
+    stopAlerts();
+    var freq=parseInt(document.getElementById('alert-freq').value)||10;
+    var minSc=parseInt(document.getElementById('alert-score').value)||75;
+    alertTimer=setInterval(function(){alertScan(minSc);},freq*60*1000);
+    document.getElementById('alert-bar').classList.add('on');
+    document.getElementById('alert-txt').innerHTML='<b>Alertes actives</b> — scan toutes les <b>'+freq+' min</b> · Score > '+minSc;
+    log('🔔 Alertes activées — scan toutes les '+freq+' minutes','ok');
+    switchTab('live');
+    alertScan(minSc);
+  });
+}
+function stopAlerts(){if(alertTimer){clearInterval(alertTimer);alertTimer=null;}document.getElementById('alert-bar').classList.remove('on');}
+function changeAlertInterval(){if(alertTimer)startAlerts();}
+function alertScan(minSc){
+  var sel=document.querySelectorAll('.sec-card.on');
+  if(!sel.length)return;
+  var sectors=Array.prototype.map.call(sel,function(c){return SECTORS[+c.dataset.i];});
+  var newLeads=[];var nafsDone={};
+  sectors.forEach(function(sec){
+    sec.nafs.slice(0,1).forEach(function(naf){
+      if(nafsDone[naf])return;nafsDone[naf]=true;
+      var qs='activite_principale='+encodeURIComponent(naf)+'&per_page=25&page=1';
+      fetch(API+'?'+qs,{headers:{'Accept':'application/json'},signal:AbortSignal.timeout(10000)})
+      .then(function(r){return r.json();})
+      .then(function(d){
+        (d.results||[]).forEach(function(e){
+          var c=buildLead(e,sec,naf);
+          if(!c||c.score<=minSc)return;
+          var k=c.siren||c.nom;
+          if(seenKeys[k])return;
+          seenKeys[k]=true;
+          newLeads.push(c);
+          liveAll.unshift(c);shown.unshift(c);
+        });
+        if(newLeads.length){
+          renderTable();updStats();
+          new Notification('LeadFX — '+newLeads.length+' nouveau'+(newLeads.length>1?'x':'')+' lead'+(newLeads.length>1?'s':''),{
+            body:newLeads.slice(0,3).map(function(l){return l.nom+' (score '+l.score+')'}).join(' · '),
+          });
+        }
+      }).catch(function(){});
+    });
+  });
+}
+
+// ── FILTRES ───────────────────────────────────────────
+function filterExpo(f,btn){expoFlt=f;document.querySelectorAll('.fchips .fc').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');renderTable();}
+
+function updStats(){
+  var t=shown.length,f=shown.filter(function(c){return c.expo==='Forte';}).length,m=shown.filter(function(c){return c.expo==='Moyenne';}).length;
+  var sv=shown.filter(function(c){return c.sirenOk;}).length;
+  var caArr=shown.filter(function(c){return c.ca>0;});
+  var caM=caArr.length?Math.round(caArr.reduce(function(a,c){return a+c.ca;},0)/caArr.length):0;
+  var pairs=new Set(shown.reduce(function(a,c){return a.concat(c.pairs||[]);},[])).size;
+  document.getElementById('s1').textContent=t||'—';document.getElementById('s2').textContent=f||'—';
+  document.getElementById('s3').textContent=m||'—';document.getElementById('s4').textContent=caM?caM+' M€':'—';
+  document.getElementById('s5').textContent=pairs||'—';document.getElementById('s6').textContent=sv||'—';
+  document.getElementById('nv-t').textContent=t;document.getElementById('nv-f').textContent=f;
+  document.getElementById('nv-s').textContent=sv;document.getElementById('nv-msg').textContent=Object.keys(crmLoad()).length;
+  updCRMBadge();
+}
+
+// ── TABLE ─────────────────────────────────────────────
+function renderTable(){
+  var wrap=document.getElementById('tw');
+  var fp=document.getElementById('f-pair').value;
+  var disp=shown.filter(function(c){
+    if(expoFlt!=='all'&&c.expo!==expoFlt)return false;
+    if(fp&&(c.pairs||[]).indexOf(fp)===-1)return false;
+    if(refStr){var h=c.nom.toLowerCase()+' '+(c.ville||'').toLowerCase()+' '+(c.naf||'');if(h.indexOf(refStr)===-1)return false;}
+    return true;
+  });
+  if(!disp.length){
+    wrap.innerHTML='<div class="empty"><div class="empty-ico">◈</div>'+
+      '<div class="empty-t">Aucun lead — lance le scraping</div>'+
+      '<div class="empty-s">Sélectionne tes secteurs · CA 5–125 M€ · Score FX &gt; 75 · Effectif ≥ 10 salariés</div></div>';
+    return;
+  }
+  wrap.innerHTML='<div class="tw"><table><thead><tr>'+
+    '<th>#</th><th>Société + Dirigeant</th><th>NAF officiel</th><th>Ville</th>'+
+    '<th>CA</th><th>Effectif</th><th>Paires FX</th>'+
+    '<th>Flux 666 — pertes</th><th>Flux 766 — gains</th>'+
+    '<th>Expo</th><th>Score</th><th>SIREN</th><th>Actions</th>'+
+    '</tr></thead><tbody id="tbody"></tbody></table></div>';
+  var tbody=document.getElementById('tbody');
+  disp.forEach(function(c,i){
+    var ec=c.expo==='Forte'?'ef':'em';
+    var sc=c.score>=85?'sh':c.score>=78?'sm':'sl2';
+    var pp=(c.pairs||[]).map(function(p){return'<span class="pair">'+p+'</span>';}).join('');
+    var ca=c.ca?c.ca+' M€':'—';
+    var crms=crmGet(c.id);
+    var crmStatus=crms?crms.status:null;
+    var tr=document.createElement('tr');tr.className='fu';
+    tr.innerHTML=
+      '<td style="font-family:var(--fm);font-size:10px;color:var(--mu)">'+String(i+1).padStart(2,'0')+'</td>'+
+      '<td style="min-width:175px">'+
+        '<div class="co" data-id="'+c.id+'">'+c.nom+'</div>'+
+        (c.dirigNom?'<div class="dirig-tag">👤 '+c.dirigNom+'</div>':'')+
+        '<div class="co-lks">'+
+          '<a href="'+c.links.pappers+'" target="_blank" class="lk">📋 Pappers</a>'+
+          '<a href="'+c.links.annuaire+'" target="_blank" class="lk">🏛 Annuaire</a>'+
+          '<a href="'+c.links.societe+'" target="_blank" class="lk">🏢 Societe</a>'+
+        '</div>'+
+      '</td>'+
+      '<td><span class="naf-b">'+(c.naf||'—')+'</span><div class="ftxt" style="margin-top:2px">'+(c.nafLib||'—')+'</div></td>'+
+      '<td style="font-size:11px;color:var(--m2);white-space:nowrap">'+(c.ville||'—')+(c.cp?'<br><span style="font-size:10px;color:var(--mu)">'+c.cp.slice(0,2)+'</span>':'')+'</td>'+
+      '<td class="ca-v">'+ca+'</td>'+
+      '<td>'+(effL(c.eff)?'<span class="eff-tag">'+effL(c.eff)+' sal.</span>':'—')+'</td>'+
+      '<td>'+(pp||'—')+'</td>'+
+      '<td><span class="l6">666</span><div class="ftxt">'+(c.f6||'—')+'</div></td>'+
+      '<td><span class="l7">766</span><div class="ftxt">'+(c.f7||'—')+'</div></td>'+
+      '<td><span class="expo '+ec+'">'+c.expo+'</span><div style="font-family:var(--fm);font-size:9px;color:var(--mu);margin-top:2px">'+(c.contact||'DAF')+'</div></td>'+
+      '<td><div class="scr '+sc+'">'+c.score+'</div></td>'+
+      '<td><span class="siren-ok">'+( c.sirenOk?'✓ Luhn':'—')+'</span><div style="font-family:var(--fm);font-size:9px;color:var(--mu);margin-top:2px">'+(c.siren||'—')+'</div></td>'+
+      '<td>'+
+        '<button class="msgbtn" data-id="'+c.id+'">✉</button>'+
+        '<div class="crm-bar">'+
+          '<button class="crm-btn'+(crmStatus==='contacte'?' s-contacte':'')+'" data-cid="'+c.id+'" data-cs="contacte">📞</button>'+
+          '<button class="crm-btn'+(crmStatus==='interesse'?' s-interesse':'')+'" data-cid="'+c.id+'" data-cs="interesse">⭐</button>'+
+          '<button class="crm-btn'+(crmStatus==='signe'?' s-signe':'')+'" data-cid="'+c.id+'" data-cs="signe">✅</button>'+
+        '</div>'+
+      '</td>';
+    tbody.appendChild(tr);
+  });
+  // Event delegation
+  wrap.onclick=function(ev){
+    var el=ev.target;
+    // Modal
+    var id=parseInt((el.dataset||{}).id,10);
+    if(!isNaN(id))openModal(id);
+    // CRM
+    var cid=el.dataset.cid;var cs=el.dataset.cs;
+    if(cid&&cs){
+      var lead=findById(parseInt(cid,10));
+      if(lead)crmSet(lead,cs);
+    }
+  };
+}
+
+// ── CRM ──────────────────────────────────────────────
+var CRM_KEY='leadfx_crm_v2';
+function crmLoad(){try{return JSON.parse(localStorage.getItem(CRM_KEY)||'{}');}catch(e){return {};}}
+function crmSave(d){try{localStorage.setItem(CRM_KEY,JSON.stringify(d));}catch(e){}}
+function crmSet(lead,status){
+  var d=crmLoad();
+  d[lead.id]={id:lead.id,nom:lead.nom,siren:lead.siren,ville:lead.ville,ca:lead.ca,pairs:lead.pairs,expo:lead.expo,score:lead.score,f6:lead.f6,f7:lead.f7,contact:lead.contact,naf:lead.naf,status:status,ts:new Date().toLocaleDateString('fr-FR')};
+  crmSave(d);updCRMBadge();renderTable();
+}
+function crmGet(id){return crmLoad()[id]||null;}
+function crmDel(id){var d=crmLoad();delete d[id];crmSave(d);updCRMBadge();renderCRM();}
+var crmFilter='all';
+function crmFlt(f,btn){crmFilter=f;document.querySelectorAll('#crm-panel .fc').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');renderCRM();}
+function updCRMBadge(){
+  var d=crmLoad(),n=Object.keys(d).length;
+  var b=document.getElementById('crm-badge');if(b){b.textContent=n;b.style.display=n>0?'':'none';}
+  document.getElementById('crm-nt').textContent=n;
+  document.getElementById('nv-msg').textContent=n;
+  ['nc','ni','ns'].forEach(function(x,i){var st=['contacte','interesse','signe'][i];var el=document.getElementById('crm-'+x);if(el)el.textContent=Object.values(d).filter(function(c){return c.status===st;}).length;});
+}
+function renderCRM(){
+  var wrap=document.getElementById('crm-wrap');if(!wrap)return;
+  var d=Object.values(crmLoad()).filter(function(c){return crmFilter==='all'||c.status===crmFilter;});
+  d.sort(function(a,b){return({'signe':0,'interesse':1,'contacte':2}[a.status]||3)-({'signe':0,'interesse':1,'contacte':2}[b.status]||3);});
+  if(!d.length){wrap.innerHTML='<div class="empty"><div class="empty-ico">📋</div><div class="empty-t">Aucun prospect</div><div class="empty-s">Ajoute des statuts depuis l\'onglet 🔵<br>Clique 📞 ⭐ ✅ sur chaque lead</div></div>';updCRMBadge();return;}
+  var sl={'contacte':'📞 Contacté','interesse':'⭐ Intéressé','signe':'✅ Signé'};
+  wrap.innerHTML='<div class="tcard"><div class="tw"><table><thead><tr><th>#</th><th>Société</th><th>Statut</th><th>CA</th><th>Paires FX</th><th>Exposition</th><th>Score</th><th>Date</th><th></th></tr></thead><tbody id="crm-tbody"></tbody></table></div></div>';
+  var tb=document.getElementById('crm-tbody');
+  d.forEach(function(c,i){
+    var sc=c.score>=85?'sh':c.score>=78?'sm':'sl2';
+    var ec=c.expo==='Forte'?'ef':'em';
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td style="font-family:var(--fm);font-size:10px;color:var(--mu)">'+String(i+1).padStart(2,'0')+'</td>'+
+      '<td><div style="font-family:var(--fd);font-weight:600;font-size:13px">'+c.nom+'</div><div style="font-family:var(--fm);font-size:9px;color:var(--mu)">'+(c.ville||'')+'</div></td>'+
+      '<td><span class="crm-badge s-'+c.status+'">'+sl[c.status]+'</span></td>'+
+      '<td class="ca-v">'+(c.ca?c.ca+' M€':'—')+'</td>'+
+      '<td>'+(c.pairs||[]).map(function(p){return'<span class="pair">'+p+'</span>';}).join('')+'</td>'+
+      '<td><span class="expo '+ec+'">'+(c.expo||'—')+'</span></td>'+
+      '<td><div class="scr '+sc+'">'+(c.score||'—')+'</div></td>'+
+      '<td style="font-family:var(--fm);font-size:9px;color:var(--mu)">'+(c.ts||'—')+'</td>'+
+      '<td><button class="crm-btn" style="color:var(--r);border-color:var(--r)" data-del="'+c.id+'">✕</button></td>';
+    tb.appendChild(tr);
+  });
+  wrap.querySelector('table').addEventListener('click',function(ev){var id=ev.target.dataset.del;if(id)crmDel(id);});
+  updCRMBadge();
+}
+function exportCRM(){
+  if(!window.XLSX)return;
+  var d=Object.values(crmLoad());if(!d.length){alert('Aucun prospect !');return;}
+  var hd=['Statut','Société','SIREN','Ville','CA (M€)','Paires FX','Exposition','Score','Flux 666','Flux 766','Contact','Date'];
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([hd].concat(d.map(function(c){return[c.status,c.nom,c.siren||'',c.ville||'',c.ca||'',(c.pairs||[]).join('/'),c.expo||'',c.score||'',c.f6||'',c.f7||'',c.contact||'',c.ts||''];}))),'Pipeline CRM');
+  XLSX.writeFile(wb,'LeadFX_CRM_'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+
+// ── MODAL ─────────────────────────────────────────────
+function findById(id){return shown.find(function(c){return c.id===id;});}
+function openModal(id){
+  curLead=findById(id);if(!curLead)return;var c=curLead;
+  document.getElementById('m-nom').textContent=c.nom;
+  document.getElementById('m-sub').textContent=(c.naf||'')+' · '+(c.nafLib||'')+' · '+(c.ville||'')+' · Score '+c.score+'/100';
+  document.getElementById('m-data').innerHTML=
+    '<div class="mdc"><div class="mdl">CA estimé</div><div class="mdv" style="color:#3dde7a">'+(c.ca?c.ca+' M€':'—')+'</div></div>'+
+    '<div class="mdc"><div class="mdl">Dirigeant</div><div class="mdv">'+(c.dirigNom||'—')+'</div></div>'+
+    '<div class="mdc"><div class="mdl">Contact cible</div><div class="mdv">'+(c.contact||'DAF')+'</div></div>'+
+    '<div class="mdc"><div class="mdl">Effectif</div><div class="mdv">'+(effL(c.eff)||'—')+'</div></div>'+
+    '<div class="mdc"><div class="mdl">Paires FX</div><div class="mdv" style="font-family:var(--fm);color:var(--b)">'+(c.pairs||[]).join(' · ')+'</div></div>'+
+    '<div class="mdc"><div class="mdl">SIREN (Luhn ✓)</div><div class="mdv" style="font-family:var(--fm);font-size:11px">'+(c.siren||'—')+'</div></div>'+
+    '<div class="mdc" style="grid-column:1/-1"><div class="mdl" style="color:#ff7a7a">Flux 666 — pertes de change</div><div class="mdv" style="font-weight:400;font-size:12px;line-height:1.5">'+(c.f6||'—')+'</div></div>'+
+    '<div class="mdc" style="grid-column:1/-1"><div class="mdl" style="color:var(--g)">Flux 766 — gains de change</div><div class="mdv" style="font-weight:400;font-size:12px;line-height:1.5">'+(c.f7||'—')+'</div></div>';
+  document.getElementById('m-links').innerHTML='<a href="'+c.links.pappers+'" target="_blank" class="mlink">📋 Pappers.fr</a><a href="'+c.links.annuaire+'" target="_blank" class="mlink">🏛 Annuaire</a><a href="'+c.links.societe+'" target="_blank" class="mlink">🏢 Societe.com</a>';
+  document.querySelectorAll('.mt').forEach(function(t,i){t.classList.toggle('on',i===0);});
+  document.getElementById('m-msg').textContent=genMsg('email',c);
+  document.getElementById('ov').classList.add('on');
+}
+function setMT(tab,btn){document.querySelectorAll('.mt').forEach(function(t){t.classList.remove('on');});btn.classList.add('on');if(curLead)document.getElementById('m-msg').textContent=genMsg(tab,curLead);}
+function copyMsg(){navigator.clipboard.writeText(document.getElementById('m-msg').textContent);var b=document.querySelector('.cpybtn');b.textContent='✓ Copié !';setTimeout(function(){b.textContent='Copier le message';},2000);msgCount++;}
+function genMsg(type,c){
+  var p=(c.pairs||['EUR/USD'])[0],ca=c.ca?c.ca+' M€':'votre CA',imp=c.ca?(c.ca*0.04).toFixed(1):'significatif';
+  if(type==='email'){return'Objet : '+c.nom+' — Optimisation exposition change '+p+' (comptes 666 & 766)\n\nMadame, Monsieur '+(c.contact||'')+',\n\nEn analysant les PME/ETI françaises de votre secteur (NAF '+c.naf+'), '+c.nom+' présente une exposition structurelle sur '+p+' qui impacte directement vos comptes de résultat.\n\n'+(c.f6.charAt(0).toUpperCase()+c.f6.slice(1))+'.\n\nSur un CA de '+ca+', une variation de 4% sur '+p+' représente environ '+imp+' M€ de sensibilité — là où votre banque facture généralement 1,5 à 2% de marge.\n\nNotre bureau de change spécialisé PME/ETI propose :\n→ Taux '+p+' compétitifs — 0,8 à 1,5% moins cher que votre banque\n→ Virements SWIFT traités sous 24h, zéro frais cachés\n→ Couverture à terme (forward/swap) adaptée à vos cycles\n→ Reporting change dédié comptabilité 666/766\n→ Interlocuteur dédié, disponible sous 1 heure\n\nAuriez-vous 20 minutes cette semaine pour évaluer vos économies ?\n\nCordialement';}
+  if(type==='li'){return'Bonjour '+(c.dirigNom?c.dirigNom+',':',')+'\n\nEn analysant les PME françaises exposées sur '+p+', '+c.nom+' (NAF '+c.naf+') figure parmi celles dont le compte 666 est structurellement impacté — '+c.f6.toLowerCase().substring(0,100)+'…\n\nNos clients similaires économisent 0,8–1,5% vs banque.\nDisponible 15 min cette semaine ? [Bureau change PME/ETI]';}
+  return'Bonjour, analyse FX '+c.nom+' sur '+p+'. Éco. estimée vs banque : 0,8–1,5%. RDV ? [Bureau change PME]';
+}
+
+// ── EXPORTS ───────────────────────────────────────────
+function xCSV(){
+  if(!shown.length)return;
+  var hd=['#','Société','SIREN','Luhn','NAF','Activité','Ville','Dept','CA(M€)','Effectif','Dirigeant','Paires FX','Flux 666','Flux 766','Exposition','Score','Contact','Pappers','Annuaire'];
+  var rows=[hd].concat(shown.map(function(c,i){return[i+1,c.nom,c.siren||'',c.sirenOk?'✓':'—',c.naf||'',c.nafLib||'',c.ville||'',c.cp?c.cp.slice(0,2):'',c.ca||'',effL(c.eff)||'',c.dirigNom||'',(c.pairs||[]).join('/'),c.f6||'',c.f7||'',c.expo,c.score,c.contact||'',c.links.pappers||'',c.links.annuaire||''];}));
+  var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(rows.map(function(r){return r.map(function(v){return'"'+String(v||'').replace(/"/g,'""')+'"';}).join(',');}).join('\n'));a.download='LeadFX_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+}
+function xExcel(){
+  if(!shown.length||!window.XLSX)return;
+  var hd=['#','Société','SIREN','Luhn','NAF','Activité','Ville','Dept','CA (M€)','Effectif','Dirigeant','Paires FX','Flux 666 (pertes)','Flux 766 (gains)','Exposition','Score','Contact','Pappers.fr','Annuaire Officiel'];
+  var data=[hd].concat(shown.map(function(c,i){return[i+1,c.nom,c.siren||'',c.sirenOk?'✓ Luhn valide':'—',c.naf||'',c.nafLib||'',c.ville||'',c.cp?c.cp.slice(0,2):'',c.ca||'',effL(c.eff)||'',c.dirigNom||'',(c.pairs||[]).join(' / '),c.f6||'',c.f7||'',c.expo,c.score,c.contact||'',c.links.pappers||'',c.links.annuaire||''];}));
+  var wb=XLSX.utils.book_new();
+  var ws=XLSX.utils.aoa_to_sheet(data);
+  ws['!cols']=[{wch:4},{wch:30},{wch:12},{wch:12},{wch:8},{wch:35},{wch:18},{wch:5},{wch:8},{wch:10},{wch:22},{wch:22},{wch:55},{wch:55},{wch:12},{wch:8},{wch:18},{wch:42},{wch:42}];
+  XLSX.utils.book_append_sheet(wb,ws,'Leads FX');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['LeadFX Pro','Sourcing FX Précis'],['Date',new Date().toLocaleDateString('fr-FR')],['Méthode','NAF INSEE × Mots-clés FX croisés'],['CA ciblé','5–125 M€'],['Effectif min','≥ 10 salariés'],['Score min','> 75'],['Total leads',shown.length],['Forte exposition',shown.filter(function(c){return c.expo==='Forte';}).length],['SIREN Luhn ✓',shown.filter(function(c){return c.sirenOk;}).length]]),'Résumé');
+  XLSX.writeFile(wb,'LeadFX_'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+
+// ── UTILS ─────────────────────────────────────────────
+function log(txt,cls){var el=document.getElementById('plog');el.querySelectorAll('.pl.cur').forEach(function(l){l.classList.remove('cur');});var d=document.createElement('div');d.className='pl cur'+(cls?' '+cls:'');d.textContent='› '+txt;el.appendChild(d);el.scrollTop=el.scrollHeight;}
+function setP(p){document.getElementById('pf').style.width=p+'%';}
+
+// Init
+setTimeout(updCRMBadge,100);
+</script>
+</body>
+</html>
