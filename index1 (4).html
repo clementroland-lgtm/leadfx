@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LeadFX Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+:root{
+  --bg:#0d0d14;
+  --s1:#13131e;
+  --s2:#1a1a28;
+  --s3:#222234;
+  --br:rgba(255,255,255,.06);
+  --br2:rgba(255,255,255,.10);
+  --g:#5b5dff;
+  --g2:#7c7eff;
+  --gd:rgba(91,93,255,.10);
+  --gb:rgba(91,93,255,.25);
+  --gr:#00d4aa;
+  --grd:rgba(0,212,170,.08);
+  --r:#ff4f6d;
+  --y:#ffb547;
+  --tx:#f0f0ff;
+  --m1:#4a4a6a;
+  --m2:#7a7a9a;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--tx);font-family:'Inter',system-ui,sans-serif;font-size:13px;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background:
+  radial-gradient(ellipse 60% 50% at 15% 20%,rgba(91,93,255,.06),transparent 60%),
+  radial-gradient(ellipse 50% 40% at 85% 80%,rgba(0,212,170,.04),transparent 60%);
+  pointer-events:none;z-index:0;}
+.app{max-width:1440px;margin:0 auto;padding:24px 28px 80px;position:relative;z-index:1;}
+
+/* NAV */
+nav{display:flex;align-items:center;justify-content:space-between;padding:0 0 24px;border-bottom:1px solid var(--br);margin-bottom:28px;flex-wrap:wrap;gap:12px;}
+.logo{font-size:20px;font-weight:800;letter-spacing:-1.5px;display:flex;align-items:center;gap:10px;}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:var(--g);box-shadow:0 0 12px var(--g);}
+.logo span{color:var(--g2);}
+.nav-right{display:flex;align-items:center;gap:20px;}
+.kpi{text-align:right;}
+.kpi-n{font-size:22px;font-weight:800;letter-spacing:-1px;line-height:1;}
+.kpi-l{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--m1);margin-top:2px;}
+.divider{width:1px;height:32px;background:var(--br2);}
+
+/* CARDS */
+.card{background:var(--s1);border:1px solid var(--br);border-radius:16px;padding:22px 24px;margin-bottom:16px;backdrop-filter:blur(10px);}
+.card-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:var(--m1);margin-bottom:16px;}
+
+/* FORM */
+.cfg-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:10px;margin-bottom:16px;}
+.fg{display:flex;flex-direction:column;gap:5px;}
+label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--m1);}
+select{background:var(--s2);border:1px solid var(--br2);border-radius:10px;color:var(--tx);padding:10px 12px;font-size:12px;font-family:'Inter',sans-serif;outline:none;width:100%;appearance:none;cursor:pointer;transition:border-color .2s;}
+select:focus{border-color:var(--g);}
+select option{background:var(--s1);}
+
+/* SECTEURS */
+.sec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:6px;margin:10px 0 18px;}
+.sc{background:var(--s2);border:1px solid var(--br);border-radius:10px;padding:9px 12px;cursor:pointer;transition:all .2s;user-select:none;}
+.sc:hover{border-color:var(--br2);background:var(--s3);}
+.sc.on{border-color:var(--gb);background:var(--gd);}
+.sc-name{font-size:11px;font-weight:600;color:var(--m2);transition:color .2s;}
+.sc-code{font-size:9px;font-family:'SF Mono',monospace;color:var(--m1);margin-top:3px;letter-spacing:.5px;}
+.sc.on .sc-name{color:var(--g2);}
+.sc.on .sc-code{color:var(--gb);}
+
+/* BUTTONS */
+.btns{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.btn{padding:10px 20px;border-radius:10px;border:none;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;font-family:'Inter',sans-serif;letter-spacing:-.2px;}
+.btn-go{background:linear-gradient(135deg,var(--g),var(--g2));color:#fff;box-shadow:0 4px 20px rgba(91,93,255,.3);}
+.btn-go:hover{transform:translateY(-1px);box-shadow:0 6px 28px rgba(91,93,255,.4);}
+.btn-go:disabled{background:var(--s3);color:var(--m1);cursor:not-allowed;transform:none;box-shadow:none;}
+.btn-stop{background:var(--r);color:#fff;}
+.btn-stop:disabled{background:var(--s3);color:var(--m1);cursor:not-allowed;}
+.btn-s{background:var(--s2);color:var(--m2);border:1px solid var(--br2);font-size:12px;}
+.btn-s:hover{background:var(--s3);color:var(--tx);border-color:var(--br2);}
+
+/* LOG */
+.log-box{font-family:'SF Mono','JetBrains Mono',monospace;font-size:10px;color:rgba(0,212,170,.8);background:var(--s1);border:1px solid var(--br);border-radius:10px;padding:10px 14px;max-height:65px;overflow-y:auto;margin-bottom:8px;line-height:1.8;}
+.log-box .err{color:var(--r);}
+.prog{height:2px;background:var(--s2);border-radius:1px;margin-bottom:20px;overflow:hidden;}
+.pbar{height:100%;background:linear-gradient(90deg,var(--g),var(--gr));width:0%;transition:width .4s;border-radius:1px;}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px;}
+.stat{background:var(--s1);border:1px solid var(--br);border-radius:12px;padding:14px 16px;}
+.stat-n{font-size:24px;font-weight:800;line-height:1;letter-spacing:-1px;}
+.stat-l{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--m1);margin-top:5px;}
+
+/* FILTERS */
+.filters{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+.fi{background:var(--s2);border:1px solid var(--br);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:500;color:var(--m2);cursor:pointer;transition:all .15s;}
+.fi:hover{border-color:var(--br2);color:var(--tx);}
+.fi.on{background:var(--gd);border-color:var(--gb);color:var(--g2);}
+.si{background:var(--s2);border:1px solid var(--br);border-radius:10px;padding:6px 12px;font-size:11px;font-family:'Inter',sans-serif;color:var(--tx);outline:none;min-width:160px;transition:border-color .2s;}
+.si:focus{border-color:var(--g);}
+.fml{margin-left:auto;display:flex;gap:6px;}
+.abtn{background:var(--s2);border:1px solid var(--br);border-radius:8px;padding:6px 12px;font-size:10px;font-weight:600;color:var(--m2);cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;}
+.abtn:hover{border-color:var(--br2);color:var(--tx);}
+.abtn.g{color:var(--gr);border-color:rgba(0,212,170,.25);background:var(--grd);}
+
+/* TABLE */
+.tcard{background:var(--s1);border:1px solid var(--br);border-radius:16px;overflow:hidden;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--m1);padding:10px 12px;text-align:left;background:var(--s2);border-bottom:1px solid var(--br);white-space:nowrap;}
+td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.025);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,.018);}
+.c-nom{font-weight:700;font-size:13px;letter-spacing:-.3px;}
+.c-lks{display:flex;gap:3px;margin-top:5px;flex-wrap:wrap;}
+.lk{font-size:9px;font-weight:500;padding:2px 7px;border-radius:5px;border:1px solid var(--br);color:var(--m1);text-decoration:none;transition:all .15s;}
+.lk:hover{border-color:var(--br2);color:var(--tx);}
+.naf-tag{font-family:'SF Mono',monospace;font-size:9px;background:var(--s2);border:1px solid var(--br);padding:2px 6px;border-radius:5px;color:var(--m1);letter-spacing:.3px;}
+.ca-v{font-size:14px;font-weight:800;color:var(--gr);letter-spacing:-.5px;}
+.ca-nd{font-size:10px;color:var(--m1);font-style:italic;}
+.eff-tag{font-size:9px;font-weight:600;padding:2px 7px;border-radius:5px;background:rgba(91,93,255,.1);color:var(--g2);border:1px solid rgba(91,93,255,.2);}
+.cat-tag{font-size:9px;font-weight:700;padding:2px 7px;border-radius:5px;background:rgba(0,212,170,.08);color:var(--gr);border:1px solid rgba(0,212,170,.2);margin-left:4px;}
+.dirig{font-size:11px;font-weight:600;color:var(--gr);margin-top:3px;}
+.sub{font-size:10px;color:var(--m1);margin-top:1px;}
+.pair-tag{font-size:10px;font-weight:700;padding:3px 8px;background:rgba(91,93,255,.1);color:var(--g2);border-radius:6px;border:1px solid rgba(91,93,255,.2);white-space:nowrap;}
+.f6t{font-size:8px;font-weight:700;padding:2px 5px;border-radius:4px;background:rgba(255,79,109,.12);color:#ff8fa3;margin-bottom:3px;display:inline-block;letter-spacing:.5px;}
+.f7t{font-size:8px;font-weight:700;padding:2px 5px;border-radius:4px;background:rgba(0,212,170,.08);color:var(--gr);margin-bottom:3px;display:inline-block;letter-spacing:.5px;}
+.ftxt{font-size:10px;color:var(--m2);line-height:1.5;max-width:175px;}
+.crm-bar{display:flex;gap:3px;margin-top:6px;}
+.cb{font-size:9px;padding:4px 8px;border-radius:7px;border:1px solid var(--br);background:transparent;color:var(--m1);cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;}
+.cb:hover{border-color:var(--br2);}
+.cb.sc{background:rgba(91,93,255,.15);color:var(--g2);border-color:rgba(91,93,255,.3);}
+.cb.si2{background:rgba(255,181,71,.12);color:var(--y);border-color:rgba(255,181,71,.3);}
+.cb.ss{background:rgba(0,212,170,.08);color:var(--gr);border-color:rgba(0,212,170,.25);}
+.empty-state{text-align:center;padding:70px 20px;}
+.es-ico{font-size:44px;margin-bottom:16px;opacity:.2;}
+.es-t{font-size:17px;font-weight:700;color:var(--m2);margin-bottom:8px;letter-spacing:-.5px;}
+.es-s{font-size:11px;color:var(--m1);line-height:1.8;}
+@keyframes fi{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+.fi-row{animation:fi .15s ease forwards;}
+footer{text-align:center;padding:28px 0 12px;border-top:1px solid var(--br);margin-top:48px;font-size:9px;font-weight:600;color:var(--m1);letter-spacing:2px;text-transform:uppercase;}
+</style>
+</head>
+<body>
+<div class="app">
+
+<nav>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <div class="logo"><div class="logo-dot"></div><div><span>Lead</span>FX Pro</div></div>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-n" style="color:#00ff88" id="kp1">0</div><div class="kpi-l">Leads</div></div>
+    <div class="sep"></div>
+    <div class="kpi"><div class="kpi-n" style="color:#3d7fff" id="kp2">—</div><div class="kpi-l">CA moy.</div></div>
+    <div class="sep"></div>
+    <div class="kpi"><div class="kpi-n" style="color:#ffb300" id="kp3">0</div><div class="kpi-l">Pipeline</div></div>
+  </div>
+</nav>
+
+<div class="panel">
+  <div class="cfg-row">
+    <div class="fg"><label>Objectif leads</label>
+      <select id="nb">
+        <option value="25">25</option>
+        <option value="50" selected>50</option>
+        <option value="100">100</option>
+        <option value="200">200</option>
+        <option value="500">500</option>
+        <option value="9999">Maximum ∞</option>
+      </select>
+    </div>
+    <div class="fg"><label>Département</label>
+      <select id="dept">
+        <option value="">Toute la France</option>
+        <option value="75">75 — Paris</option>
+        <option value="92">92 — Hauts-de-Seine</option>
+        <option value="69">69 — Lyon</option>
+        <option value="13">13 — Marseille</option>
+        <option value="33">33 — Bordeaux</option>
+        <option value="59">59 — Lille</option>
+        <option value="31">31 — Toulouse</option>
+        <option value="44">44 — Nantes</option>
+        <option value="76">76 — Le Havre</option>
+        <option value="67">67 — Strasbourg</option>
+        <option value="06">06 — Nice</option>
+        <option value="34">34 — Montpellier</option>
+      </select>
+    </div>
+  </div>
+
+  <div style="font-size:10px;color:#4a4a72;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;">Secteurs à scraper</div>
+  <div class="sec-grid" id="sec-grid"></div>
+
+  <div class="btns">
+    <button class="btn btn-go" id="btn-go" onclick="start()">▶ Lancer</button>
+    <button class="btn btn-stop" id="btn-stop" onclick="doStop()" disabled>⬛ Stop</button>
+    <button class="btn btn-s" onclick="selAll()">Tout</button>
+    <button class="btn btn-s" onclick="selNone()">Aucun</button>
+    <button class="btn btn-s" onclick="xls()">↓ Excel</button>
+    <button class="btn btn-s" onclick="xcsv()">↓ CSV</button>
+    <span id="info" style="font-size:11px;color:#4a4a72;margin-left:4px;"></span>
+  </div>
+</div>
+
+<div class="log-box" id="log">Prêt</div>
+<div class="prog"><div class="pbar" id="pb"></div></div>
+<div class="stats-row" id="stats"></div>
+
+<div class="filters" id="filters">
+  <span class="fi on" onclick="flt('all',this)">Tous</span>
+  <span class="fi" onclick="flt('fx',this)">🔥 Avec 666/766</span>
+  <span class="fi" onclick="flt('ca',this)">💰 CA connu</span>
+  <span class="fi" onclick="flt('dn',this)">👤 Avec dirigeant</span>
+  <input class="si" type="text" placeholder="🔍 Nom, ville…" oninput="refStr=this.value.toLowerCase();render()">
+  <div class="fml">
+    <button class="abtn g" onclick="xls()">↓ Excel</button>
+    <button class="abtn" onclick="xcsv()">↓ CSV</button>
+  </div>
+</div>
+
+<div class="tcard">
+  <div id="tw">
+    <div class="empty-state">
+      <div class="es-ico">◈</div>
+      <div class="es-t">LeadFX Pro</div>
+      <div class="es-s">Sélectionne des secteurs et clique <b style="color:#00ff88">▶ Lancer</b><br>API SIREN officielle · Gratuit · Illimité · 666/766</div>
+    </div>
+  </div>
+</div>
+<footer>LeadFX Pro · API SIREN Gouvernement Français · Gratuit · 666/766</footer>
+</div>
+
+<script>
+'use strict';
+// ── L'API SIREN n'accepte q= (mot-clé) ou activite_principale=, pas les deux ──
+// On utilise q= avec des mots-clés métier précis → 0 risque de HTTP 400
+var API = 'https://recherche-entreprises.api.gouv.fr/search';
+
+// Chaque secteur = liste de mots-clés q= qui fonctionnent
+var SECS = [
+  {n:'Textile Import/Export',    fx:'4641Z', kws:['importateur textile','exportateur textile','négoce textile international']},
+  {n:'Habillement & Mode',       fx:'4642Z', kws:['importateur habillement','grossiste vêtements export','négoce mode international']},
+  {n:'Négoce Céréales',          fx:'4631Z', kws:['négoce céréales','grossiste céréales international','trading blé maïs']},
+  {n:'Négoce Viandes',           fx:'4632Z', kws:['négoce viandes export','grossiste boucherie international','import export viande']},
+  {n:'Négoce Alimentaire',       fx:'4638A', kws:['négoce alimentaire international','import export alimentation','grossiste alimentation']},
+  {n:'Fruits & Légumes',         fx:'4638B', kws:['import fruits légumes','négoce fruits légumes export','grossiste fruits légumes']},
+  {n:'Café Cacao Trading',       fx:'4637Z', kws:['négoce café cacao international','trading café export','importateur café cacao']},
+  {n:'Produits Laitiers',        fx:'4633Z', kws:['export produits laitiers','négoce laitier international','grossiste laitier']},
+  {n:'Agent Négoce Intl',        fx:'4611Z', kws:['agent négoce international','courtier commerce international','représentant commerce export']},
+  {n:'Agent Commerce Gros',      fx:'4619B', kws:['agent commerce gros international','courtier négoce','intermédiaire commerce international']},
+  {n:'Transit & Fret',           fx:'5229A', kws:['transitaire fret international','commissionnaire transport maritime','freight forwarder']},
+  {n:'Logistique Intl',          fx:'5210B', kws:['logistique internationale','entreposage import export','logistique transport international']},
+  {n:'Médicaments & Pharma',     fx:'2110Z', kws:['laboratoire pharmaceutique export','fabricant médicaments international','import principes actifs']},
+  {n:'Vétérinaire',              fx:'2120Z', kws:['fabricant médicaments vétérinaires export','négoce produits vétérinaires','import vétérinaire']},
+  {n:'Cosmétiques Export',       fx:'2042Z', kws:['fabricant cosmétiques export','marque beauté internationale','import huiles essentielles cosmétique']},
+  {n:'Grossiste Cosmétiques',    fx:'4645Z', kws:['grossiste cosmétiques international','négoce parfumerie export','importateur cosmétiques']},
+  {n:'Aéronautique Fab.',        fx:'3030Z', kws:['constructeur aéronautique','fabricant aéronefs','sous-traitant Airbus Boeing']},
+  {n:'Maintenance Aéro',         fx:'3316Z', kws:['maintenance MRO aéronautique','réparation avions international','MRO aéronautique export']},
+  {n:'Usinage Aéro',             fx:'2562B', kws:['usinage aéronautique','pièces usinées Airbus Boeing','sous-traitance aéronautique précision']},
+  {n:'BTP Afrique',              fx:'4211Z', kws:['construction Afrique','BTP Maroc Afrique','génie civil international Afrique']},
+  {n:'Construction Intl',        fx:'4120A', kws:['construction internationale','BTP international','promoteur immobilier Afrique Maroc']},
+  {n:'Hydraulique & Eau',        fx:'4291Z', kws:['travaux hydrauliques Afrique','assainissement international','eau Maroc Afrique']},
+  {n:'Chimie Export',            fx:'4675Z', kws:['négoce produits chimiques international','import export chimie','grossiste chimie']},
+  {n:'Fab. Chimique',            fx:'2059Z', kws:['fabricant produits chimiques export','chimie spécialisée international','industrie chimique export']},
+  {n:'Métaux & Acier',           fx:'4672Z', kws:['négoce métaux international','import acier aluminium','grossiste métaux non ferreux']},
+  {n:'Sidérurgie',               fx:'2410Z', kws:['sidérurgie export','fabricant acier international','transformation acier export']},
+  {n:'Aluminium & Cuivre',       fx:'2442Z', kws:['métallurgie aluminium export','fabricant aluminium cuivre','transformation métaux non ferreux']},
+  {n:'Eau & Environnement',      fx:'3600Z', kws:['traitement eau Afrique','distribution eau international','assainissement Maroc']},
+  {n:'Énergie Solaire',          fx:'3511Z', kws:['développeur solaire international','photovoltaïque Afrique','producteur énergie renouvelable export']},
+  {n:'Grossiste Électronique',   fx:'4652Z', kws:['importateur composants électroniques','négoce électronique international','grossiste high-tech']},
+  {n:'Fab. Électronique',        fx:'2612Z', kws:['fabricant cartes électroniques export','EMS électronique international','sous-traitance électronique']},
+  {n:'Bateaux & Nautisme',       fx:'3012Z', kws:['constructeur bateaux plaisance export','chantier naval international','nautisme export USA']},
+  {n:'Luxe & Maroquinerie',      fx:'4771Z', kws:['maison luxe export international','maroquinerie export Japon','articles luxe international']},
+  {n:'Automobile Export',        fx:'2931Z', kws:['équipementier automobile export','pièces auto international','sous-traitance automobile']},
+  {n:'Vins & Spiritueux',        fx:'1101A', kws:['exportateur vins spiritueux','négoce vins international','cognac champagne export USA']},
+  {n:'Bois & Matériaux',         fx:'4673A', kws:['import export bois','négoce bois international','matériaux construction import']},
+  {n:'Carburants & Pétrole',     fx:'4671Z', kws:['négoce carburants international','import pétrole','trading hydrocarbures']},
+  {n:'Ingénierie Intl',          fx:'7112B', kws:['bureau ingénierie international','études techniques Afrique','ingénierie export']},
+  {n:'Location Équipements',     fx:'7732Z', kws:['location matériel international','location équipements BTP','location grues nacelles export']},
+  {n:'Négoce Sucre & Cacao',     fx:'1081Z', kws:['négoce sucre cacao international','trading sucre','import export sucre']},
+];
+
+var FX = {
+  '4641Z':{p:'EUR/CNY',f6:'Règlements fournisseurs textiles Asie en USD — délais 90 jours FOB Shanghai',f7:'Encaissements export hors zone euro lors appréciation devises'},
+  '4642Z':{p:'EUR/CNY',f6:'Achats vêtements USD/CNY fournisseurs Asie — exposition quotidienne EUR/USD',f7:'Ventes export hors zone euro lors positions favorables'},
+  '4631Z':{p:'EUR/USD',f6:'Achats céréales cotés USD marchés CBOT Chicago — exposition quotidienne',f7:'Ventes export céréales USD lors hausse dollar américain'},
+  '4632Z':{p:'EUR/GBP',f6:'Ventes viandes UK GBP post-Brexit lors affaiblissement livre sterling',f7:'Contrats export USA Asie USD lors hausse dollar américain'},
+  '4638A':{p:'EUR/USD',f6:'Achats ingrédients alimentaires USD fournisseurs Inde et Chine',f7:'Gains de change lors achats bien positionnés sur devise de facturation'},
+  '4638B':{p:'EUR/GBP',f6:'Approvisionnement fruits légumes USD, ventes UK GBP post-Brexit',f7:'Encaissements export USA USD lors appréciation dollar'},
+  '4637Z':{p:'EUR/USD',f6:'Achats café thé cacao USD marchés ICE — cotation exclusive USD mondiale',f7:'Ventes export spécialisés hors UE lors positions favorables'},
+  '4633Z':{p:'EUR/GBP',f6:'Ventes produits laitiers UK GBP post-Brexit — exposition directe',f7:'Encaissements USA et Canada USD/CAD lors positions favorables'},
+  '4611Z':{p:'EUR/USD',f6:'Commissions négoce international libellées en devises — conversion périodique',f7:'Gains commission lors appréciation favorable des devises'},
+  '4619B':{p:'EUR/USD',f6:'Marges négoce en devises — achats et ventes dans devises différentes',f7:'Gains de change sur opérations bien positionnées'},
+  '5229A':{p:'EUR/USD',f6:'Achats capacités fret maritime USD — Baltic Exchange coté exclusivement USD',f7:'Marges opérations retour et arbitrages fret EUR lors USD fort'},
+  '5210B':{p:'EUR/USD',f6:'Contrats logistique internationale libellés USD pour import/export',f7:'Gains de change sur opérations logistique en devises'},
+  '2110Z':{p:'EUR/USD',f6:'Achats principes actifs API pharmaceutiques USD/JPY — standard absolu industrie',f7:'Royalties export brevets pharmaceutiques USD lors appréciation'},
+  '2120Z':{p:'EUR/USD',f6:'Achats matières actives vétérinaires USD CNY (Chine dominante)',f7:'Ventes santé animale export zones dollar et yuan'},
+  '2042Z':{p:'EUR/USD',f6:'Achats matières premières cosmétiques huiles essentielles actifs USD',f7:'Revenus export produits finis hors zone euro en devises'},
+  '4645Z':{p:'EUR/JPY',f6:'Achats actifs cosmétiques packaging USD/CNY fournisseurs asiatiques',f7:'Ventes boutiques Japon/USA JPY/USD lors appréciation'},
+  '3030Z':{p:'EUR/USD',f6:'Contrats livraison aéronefs libellés USD — standard absolu industrie aéro',f7:'Encaissements clients hors zone euro USD lors appréciation'},
+  '3316Z':{p:'EUR/USD',f6:'Contrats MRO maintenance aéronautique USD — standard industrie mondiale',f7:'Encaissements clients USD compagnies hors zone euro'},
+  '2562Z':{p:'EUR/USD',f6:'Contrats pièces usinées aéronautique USD — catalogue Airbus/Boeing en USD',f7:'Bons de commande USD lors appréciation dollar'},
+  '4211Z':{p:'EUR/XOF',f6:'Chantiers routiers Afrique XOF/XAF — risque change structurel durée 3-5 ans',f7:'Facturation partielle USD projets financés BM/AFD/BAD'},
+  '4120A':{p:'EUR/MAD',f6:'Coûts chantiers Maroc Afrique MAD/XOF — décalage avec facturation EUR',f7:'Facturation clients EUR lors dépréciation devises locales'},
+  '4291Z':{p:'EUR/MAD',f6:'Travaux hydrauliques hors UE libellés devises locales instables pluriannuel',f7:'Financements BM BEI AFD USD lors positions favorables'},
+  '4675Z':{p:'EUR/USD',f6:'Achats matières premières chimiques USD marchés pétro-chimiques CBOT ICE',f7:'Reventes produits chimiques export hors UE en devises'},
+  '2059Z':{p:'EUR/USD',f6:'Achats précurseurs chimiques USD marchés mondiaux — exposition structurelle',f7:'Ventes spécialités chimiques export USD/GBP lors positions favorables'},
+  '4672Z':{p:'EUR/USD',f6:'Achats métaux matières premières USD LME/CME cuivre aluminium acier',f7:'Ventes export métaux transformés USD/GBP lors positions favorables'},
+  '2410Z':{p:'EUR/USD',f6:'Achats fonte acier USD LME — sidérurgie internationale double exposition',f7:'Ventes acier export hors UE lors positions favorables EUR/USD'},
+  '2442Z':{p:'EUR/USD',f6:'Achats aluminium cuivre USD LME — très sensible variations quotidiennes',f7:'Ventes métaux transformés export hors UE lors positions favorables'},
+  '3600Z':{p:'EUR/MAD',f6:'Contrats eau Afrique libellés devises locales — risque change concessions 20-30 ans',f7:'Facturation USD projets financés BM et BAD'},
+  '3511Z':{p:'EUR/USD',f6:'Achats panneaux solaires USD — marché mondial dominé Chine coté USD',f7:'PPA long terme libellés USD lors positions de change favorables'},
+  '4652Z':{p:'EUR/USD',f6:'Achats composants électroniques Taiwan/Chine USD — très sensible EUR/USD',f7:'Ventes export électronique hors UE USD lors positions favorables'},
+  '2612Z':{p:'EUR/USD',f6:'Achats semi-conducteurs et composants USD — marché mondial libellé USD',f7:'Ventes cartes électroniques export USD lors appréciation dollar'},
+  '3012Z':{p:'EUR/USD',f6:'Ventes bateaux USA Australie libellées USD et AUD — 75% du CA export',f7:'Encaissements USD lors hausse dollar américain marché nautique'},
+  '4771Z':{p:'EUR/JPY',f6:'Translation filiales luxe Japon JPY — fortement impacté JPY bas 2022-2024',f7:'Encaissements ventes USA USD lors appréciation dollar'},
+  '2931Z':{p:'EUR/USD',f6:'Pièces automobiles livrées USA Chine libellées USD et CNY',f7:'Encaissements constructeurs américains USD lors appréciation dollar'},
+  '1101A':{p:'EUR/USD',f6:'Ventes vins spiritueux USA Asie libellées USD — 35-45% CA hors zone',f7:'Encaissements JPY/CNY lors appréciation devises asiatiques'},
+  '4673A':{p:'EUR/USD',f6:'Achats bois matières premières USD marchés mondiaux Russie Canada Brésil',f7:'Ventes export bois matériaux hors UE lors positions favorables'},
+  '4671Z':{p:'EUR/USD',f6:'Achats carburants libellés USD marchés internationaux — Brent / WTI',f7:'Reventes et arbitrages lors positions favorables EUR/USD'},
+  '7112B':{p:'EUR/USD',f6:'Honoraires ingénierie hors UE facturés USD sur projets multi-annuels',f7:'Encaissements USD/EUR sur projets bien couverts en change'},
+  '7732Z':{p:'EUR/GBP',f6:'Achats équipements grues nacelles libellés USD marchés internationaux',f7:'Revenus filiales UK GBP et Canada CAD lors appréciation'},
+  '1081Z':{p:'EUR/BRL',f6:'Production Brésil BRL — translation EUR/BRL sur CA brésilien',f7:'Ventes sucre export mondial USD lors hausse dollar américain'},
+};
+
+var EFF_LBL={'11':'10–19','12':'20–49','21':'50–99','22':'100–199','31':'200–249','32':'250+','41':'500+','42':'1000+'};
+
+// Init grille
+(function(){
+  var g=document.getElementById('sec-grid');
+  SECS.forEach(function(s,i){
+    var d=document.createElement('div');
+    d.className='sc';d.dataset.i=i;
+    d.innerHTML='<div class="sc-name">'+s.n+'</div><div class="sc-code">'+s.fx+'</div>';
+    d.onclick=function(){this.classList.toggle('on');};
+    g.appendChild(d);
+  });
+})();
+function selAll(){document.querySelectorAll('.sc').forEach(function(c){c.classList.add('on');});}
+function selNone(){document.querySelectorAll('.sc').forEach(function(c){c.classList.remove('on');});}
+
+var leads=[],running=false,shouldStop=false,fltMode='all',refStr='';
+var BL={};try{BL=JSON.parse(localStorage.getItem('lfx_bl')||'{}');}catch(e){}
+var CRM={};try{CRM=JSON.parse(localStorage.getItem('lfx_crm')||'{}');}catch(e){}
+
+function start(){
+  var sels=[];
+  document.querySelectorAll('.sc.on').forEach(function(c){sels.push(SECS[+c.dataset.i]);});
+  if(!sels.length){alert('Sélectionne au moins 1 secteur !');return;}
+
+  leads=[];BL={};localStorage.removeItem('lfx_bl');
+  shouldStop=false;running=true;
+
+  document.getElementById('btn-go').disabled=true;
+  document.getElementById('btn-stop').disabled=false;
+  document.getElementById('filters').style.display='none';
+  document.getElementById('log').innerHTML='';
+  document.getElementById('tw').innerHTML='';
+  pb(0);
+
+  var nb=parseInt(document.getElementById('nb').value)||50;
+  var dept=document.getElementById('dept').value;
+
+  log('▶ '+sels.length+' secteurs · objectif '+nb+' leads');
+
+  // Construire queue de requêtes : chaque secteur × ses mots-clés
+  var queue=[];
+  sels.forEach(function(s){
+    s.kws.forEach(function(kw){
+      queue.push({sec:s,kw:kw,page:1,done:false});
+    });
+  });
+
+  var qi=0;
+  function next(){
+    if(shouldStop||leads.length>=nb){finish();return;}
+    // Trouver prochaine requête non épuisée
+    while(qi<queue.length&&queue[qi].done) qi++;
+    if(qi>=queue.length){finish();return;}
+
+    var task=queue[qi];
+    // ── q= uniquement — zéro autre paramètre → zéro HTTP 400 ──
+    var url=API+'?q='+encodeURIComponent(task.kw)+'&per_page=25&page='+task.page;
+    if(dept) url+='&departement='+encodeURIComponent(dept);
+
+    log('"'+task.kw+'" p.'+task.page+'…');
+    pb(Math.min(92,leads.length/nb*100));
+
+    fetch(url,{headers:{'Accept':'application/json'},signal:AbortSignal.timeout(15000)})
+    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+    .then(function(d){
+      var res=d.results||[];
+      var added=0;
+      res.forEach(function(e){
+        if(leads.length>=nb)return;
+        var siren=(e.siren||'').replace(/\s/g,'');
+        if(!siren||BL[siren])return;
+        if(e.etat_administratif&&e.etat_administratif!=='A')return;
+        BL[siren]=1;
+        var nom=e.nom_raison_sociale||e.nom_complet||'';
+        if(!nom)return;
+        var naf=e.activite_principale||'';
+        var ca=e.chiffre_affaires?Math.round(e.chiffre_affaires/1e6):0;
+        var nafLib=e.libelle_activite_principale||'';
+        var ville=(e.siege&&e.siege.libelle_commune)||'';
+        var cp=(e.siege&&e.siege.code_postal)||'';
+        var effCode=e.tranche_effectif_salarie||'';
+        var dirs=e.dirigeants||[];
+        var dn=dirs.length?((dirs[0].prenom||'')+' '+(dirs[0].nom||'')).trim():'';
+        var dnp=dirs.length?(dirs[0].qualite||''):'';
+        var enc=encodeURIComponent(nom);
+        var fx=FX[naf]||FX[task.sec.fx]||null;
+        leads.push({
+          nom:nom,siren:siren,naf:naf||task.sec.fx,nafLib:nafLib,
+          ca:ca,effCode:effCode,effLbl:EFF_LBL[effCode]||'',
+          ville:ville,cp:cp,dn:dn,dnp:dnp,fx:fx,
+          categorie:e.categorie_entreprise||'',
+          pappers:'https://www.pappers.fr/entreprise/'+siren,
+          annuaire:'https://annuaire-entreprises.data.gouv.fr/rechercher?terme='+enc,
+          societe:'https://www.societe.com/cgi-bin/search?champs='+enc,
+          li:dn?'https://www.linkedin.com/search/results/people/?keywords='+encodeURIComponent(dn+' '+nom):'',
+        });
+        added++;
+      });
+
+      log('"'+task.kw+'" p.'+task.page+' → '+res.length+' résultats · '+added+' retenus · total : '+leads.length);
+      document.getElementById('info').textContent=leads.length+' leads';
+
+      if(res.length<25){task.done=true;qi++;}
+      else task.page++;
+
+      updStats();render();
+      setTimeout(next,300);
+    })
+    .catch(function(err){
+      log('"'+task.kw+'" p.'+task.page+' → '+err.message,'err');
+      task.done=true;qi++;
+      setTimeout(next,500);
+    });
+  }
+  next();
+}
+
+function finish(){
+  try{localStorage.setItem('lfx_bl',JSON.stringify(BL));}catch(e){}
+  running=false;shouldStop=false;
+  leads.sort(function(a,b){return(b.ca||0)-(a.ca||0);});
+  pb(100);
+  log('✅ '+leads.length+' leads trouvés');
+  document.getElementById('btn-go').disabled=false;
+  document.getElementById('btn-stop').disabled=true;
+  document.getElementById('filters').style.display='flex';
+  updStats();render();
+}
+function doStop(){shouldStop=true;log('⬛ Arrêt…');}
+
+function updStats(){
+  var t=leads.length;
+  var cas=leads.filter(function(l){return l.ca>0;});
+  var caM=cas.length?Math.round(cas.reduce(function(a,l){return a+l.ca;},0)/cas.length):0;
+  var avd=leads.filter(function(l){return l.dn;}).length;
+  var avfx=leads.filter(function(l){return l.fx;}).length;
+  document.getElementById('stats').innerHTML=
+    '<div class="stat"><div class="stat-n" style="color:#00ff88">'+t+'</div><div class="stat-l">Leads</div></div>'+
+    '<div class="stat"><div class="stat-n" style="color:#00ff88">'+(caM?caM+' M€':'—')+'</div><div class="stat-l">CA moyen</div></div>'+
+    '<div class="stat"><div class="stat-n" style="color:#3d7fff">'+avd+'</div><div class="stat-l">Dirigeants</div></div>'+
+    '<div class="stat"><div class="stat-n" style="color:#00ff88">'+avfx+'</div><div class="stat-l">Avec 666/766</div></div>'+
+    '<div class="stat"><div class="stat-n" style="color:#ffb300">'+Object.keys(CRM).length+'</div><div class="stat-l">Pipeline</div></div>';
+  document.getElementById('kp1').textContent=t;
+  document.getElementById('kp2').textContent=caM?caM+' M€':'—';
+  document.getElementById('kp3').textContent=Object.keys(CRM).length;
+}
+
+function flt(f,el){fltMode=f;document.querySelectorAll('.fi').forEach(function(x){x.classList.remove('on');});el.classList.add('on');render();}
+
+function render(){
+  var disp=leads.filter(function(c){
+    if(fltMode==='fx'&&!c.fx)return false;
+    if(fltMode==='ca'&&!c.ca)return false;
+    if(fltMode==='dn'&&!c.dn)return false;
+    if(refStr){var h=c.nom.toLowerCase()+' '+(c.ville||'').toLowerCase();if(h.indexOf(refStr)===-1)return false;}
+    return true;
+  });
+  var tw=document.getElementById('tw');
+  if(!disp.length){
+    tw.innerHTML='<div class="empty-state"><div class="es-ico">◈</div><div class="es-t">Aucun résultat</div><div class="es-s">Essaie "Tous" ou relance le scraping</div></div>';
+    return;
+  }
+  tw.innerHTML='<div style="overflow-x:auto"><table><thead><tr>'+
+    '<th>#</th><th>Société</th><th>NAF</th><th>Ville</th>'+
+    '<th>CA estimé</th><th>Effectif</th><th>Dirigeant</th>'+
+    '<th>Paire FX</th><th>Flux 666 — pertes</th><th>Flux 766 — gains</th>'+
+    '<th>CRM</th>'+
+    '</tr></thead><tbody id="tb"></tbody></table></div>';
+  var tb=document.getElementById('tb');
+  disp.forEach(function(c,i){
+    var crms=CRM[c.siren];
+    var tr=document.createElement('tr');
+    tr.className='fi-row';
+    tr.innerHTML=
+      '<td style="font-family:monospace;font-size:10px;color:#4a4a72">'+String(i+1).padStart(3,'0')+'</td>'+
+      '<td style="min-width:185px">'+
+        '<div class="c-nom">'+c.nom+'</div>'+
+        (c.categorie?'<span style="font-size:9px;background:rgba(0,255,136,.07);color:#00ff88;padding:1px 5px;border-radius:3px;border:1px solid rgba(0,255,136,.18)">'+c.categorie+'</span> ':'')+
+        '<div class="c-lks">'+
+          '<a href="'+c.pappers+'" target="_blank" class="lk">🟠 Pappers</a>'+
+          '<a href="'+c.annuaire+'" target="_blank" class="lk">🏛 Annuaire</a>'+
+          '<a href="'+c.societe+'" target="_blank" class="lk">🏢 Societe</a>'+
+          (c.li?'<a href="'+c.li+'" target="_blank" class="lk">💼 LinkedIn</a>':'')+
+        '</div>'+
+      '</td>'+
+      '<td><span class="naf-tag">'+c.naf+'</span>'+(c.nafLib?'<div class="sub">'+c.nafLib+'</div>':'')+'</td>'+
+      '<td style="white-space:nowrap;font-size:11px;color:#7878a8">'+(c.ville||'—')+(c.cp?'<div style="font-size:10px;color:#4a4a72">'+c.cp.slice(0,2)+'</div>':'')+'</td>'+
+      '<td>'+(c.ca?'<span class="ca-v">'+c.ca+' M€</span>':'<span class="ca-nd">—</span>')+'</td>'+
+      '<td>'+(c.effLbl?'<span class="eff-tag">'+c.effLbl+'</span>':'—')+'</td>'+
+      '<td>'+(c.dn?'<div class="dirig">'+c.dn+'</div><div class="sub">'+c.dnp+'</div>':'—')+'</td>'+
+      (c.fx?
+        '<td><span class="pair-tag">'+c.fx.p+'</span></td>'+
+        '<td><span class="f6t">666</span><div class="ftxt">'+c.fx.f6+'</div></td>'+
+        '<td><span class="f7t">766</span><div class="ftxt">'+c.fx.f7+'</div></td>':
+        '<td style="color:#4a4a72;font-size:10px">—</td><td>—</td><td>—</td>')+
+      '<td>'+
+        '<div class="crm-bar">'+
+          '<button class="cb'+(crms&&crms.st==='c'?' sc':'')+'" data-s="'+c.siren+'" data-t="c">📞</button>'+
+          '<button class="cb'+(crms&&crms.st==='i'?' si2':'')+'" data-s="'+c.siren+'" data-t="i">⭐</button>'+
+          '<button class="cb'+(crms&&crms.st==='s'?' ss':'')+'" data-s="'+c.siren+'" data-t="s">✅</button>'+
+        '</div>'+
+      '</td>';
+    tb.appendChild(tr);
+  });
+  document.getElementById('tw').onclick=function(ev){
+    var el=ev.target,s=el.dataset.s,t=el.dataset.t;
+    if(s&&t){
+      CRM[s]={st:t,ts:new Date().toLocaleDateString('fr-FR')};
+      try{localStorage.setItem('lfx_crm',JSON.stringify(CRM));}catch(e){}
+      updStats();render();
+    }
+  };
+}
+
+function xls(){
+  if(!leads.length||!window.XLSX)return;
+  var hd=['#','Société','SIREN','Catégorie','Code NAF','Activité NAF','Ville','CA estimé (M€)','Effectif','Dirigeant','Poste','Paire FX','Flux 666','Flux 766','Pappers','Annuaire','Societe','LinkedIn'];
+  var d=[hd].concat(leads.map(function(c,i){
+    return[i+1,c.nom,c.siren,c.categorie||'',c.naf,c.nafLib,c.ville,c.ca||'NC',c.effLbl||'',c.dn||'',c.dnp||'',c.fx?c.fx.p:'',c.fx?c.fx.f6:'',c.fx?c.fx.f7:'',c.pappers,c.annuaire,c.societe,c.li||''];
+  }));
+  var wb=XLSX.utils.book_new();
+  var ws=XLSX.utils.aoa_to_sheet(d);
+  ws['!cols']=[{wch:4},{wch:35},{wch:12},{wch:8},{wch:8},{wch:35},{wch:20},{wch:10},{wch:12},{wch:25},{wch:20},{wch:12},{wch:55},{wch:55},{wch:40},{wch:40},{wch:40},{wch:40}];
+  XLSX.utils.book_append_sheet(wb,ws,'Leads FX');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([
+    ['LeadFX Pro','API SIREN Officielle · 100% Gratuit'],
+    ['Date',new Date().toLocaleDateString('fr-FR')],
+    ['Total',leads.length],
+    ['CA connu',leads.filter(function(l){return l.ca>0;}).length],
+    ['Dirigeants',leads.filter(function(l){return l.dn;}).length],
+    ['Avec 666/766',leads.filter(function(l){return l.fx;}).length],
+  ]),'Résumé');
+  XLSX.writeFile(wb,'LeadFX_'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+function xcsv(){
+  if(!leads.length)return;
+  var hd=['#','Société','SIREN','NAF','Activité','Ville','CA (M€)','Effectif','Dirigeant','Paire FX','Flux 666','Flux 766','Pappers','Annuaire'];
+  var rows=[hd].concat(leads.map(function(c,i){
+    return[i+1,c.nom,c.siren,c.naf,c.nafLib,c.ville,c.ca||'',c.effLbl||'',c.dn||'',c.fx?c.fx.p:'',c.fx?c.fx.f6:'',c.fx?c.fx.f7:'',c.pappers,c.annuaire];
+  }));
+  var a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(rows.map(function(r){return r.map(function(v){return'"'+String(v||'').replace(/"/g,'""')+'"';}).join(',');}).join('\n'));
+  a.download='LeadFX_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+function log(t,cls){var el=document.getElementById('log');var d=document.createElement('div');if(cls)d.className=cls;d.textContent='› '+t;el.appendChild(d);el.scrollTop=el.scrollHeight;}
+function pb(p){document.getElementById('pb').style.width=p+'%';}
+</script>
+</body>
+</html>
